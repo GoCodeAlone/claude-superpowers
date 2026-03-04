@@ -17,6 +17,18 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
 
+## Autonomous Mode
+
+When invoked from brainstorming with autonomous context (design already approved):
+
+1. **Skip user plan review** — write the plan directly without presenting it for approval
+2. **Invoke alignment-check** — dispatch the alignment verification agent
+3. **On alignment PASS** — invoke subagent-driven-development to begin execution
+4. **On alignment FAIL** — revise the plan based on drift items, re-check (max 2 cycles)
+5. **On persistent FAIL** — escalate to user with unresolved drift summary
+
+The autonomous flag propagates through the entire pipeline: writing-plans → alignment-check → execution → PR creation → PR monitoring.
+
 ## Bite-Sized Task Granularity
 
 **Each step is one action (2-5 minutes):**
@@ -96,7 +108,19 @@ git commit -m "feat: add specific feature"
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+### Autonomous Mode (from brainstorming pipeline)
+
+When running autonomously (design already approved, no user interaction):
+
+1. Save the plan to `docs/plans/<filename>.md`
+2. Commit the plan
+3. Invoke `superpowers:alignment-check` to verify design-to-plan alignment
+4. On PASS: invoke `superpowers:subagent-driven-development` (which uses Agent Teams when available)
+5. Do NOT ask the user for execution choice — the pipeline is autonomous
+
+### Manual Mode (direct invocation)
+
+When invoked directly by the user (not from brainstorming pipeline):
 
 **"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
 
