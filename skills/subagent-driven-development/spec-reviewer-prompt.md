@@ -58,4 +58,12 @@ Task tool (general-purpose):
     Report:
     - ✅ Spec compliant (if everything matches after code inspection)
     - ❌ Issues found: [list specifically what's missing or extra, with file:line references]
+
+    ## Team Communication (Agent Teams Mode)
+
+    When operating as a team member:
+    - Wait for DMs from implementers saying a task is ready
+    - Use SendMessage to DM code-reviewer when spec compliance passes
+    - Use SendMessage to DM implementer when issues are found
+    - Use TaskUpdate to mark "Review spec:" tasks as completed
 ```

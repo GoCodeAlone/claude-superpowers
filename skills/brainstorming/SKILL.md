@@ -24,7 +24,7 @@ Every project goes through this process. A todo list, a single-function utility,
 You MUST create a task for each of these items and complete them in order:
 
 1. **Explore project context** — check files, docs, recent commits
-2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+2. **Ask clarifying questions** — adaptive batching: group 2-4 related questions per form, follow up with targeted singles
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 4. **Present design** — in sections scaled to their complexity, get user approval after each section
 5. **Write design doc** — save to `docs/plans/YYYY-MM-DD-<topic>-design.md` and commit
@@ -58,9 +58,11 @@ digraph brainstorming {
 
 **Understanding the idea:**
 - Check out the current project state first (files, docs, recent commits)
-- Ask questions one at a time to refine the idea
-- Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Ask questions using adaptive batching with AskUserQuestion:
+  - **First form:** Group 2-4 related questions covering purpose, constraints, scope, and tech choices
+  - **Follow-ups:** Targeted single questions based on interesting or ambiguous answers from previous forms
+  - Use multiple choice options when possible (AskUserQuestion supports 2-4 options per question)
+  - AskUserQuestion supports up to 4 questions per form — use this to reduce round-trips
 - Focus on understanding: purpose, constraints, success criteria
 
 **Exploring approaches:**
@@ -82,15 +84,18 @@ digraph brainstorming {
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Commit the design document to git
 
-**Implementation:**
-- Invoke the writing-plans skill to create a detailed implementation plan
-- Do NOT invoke any other skill. writing-plans is the next step.
+**Autonomous handoff:**
+- This is the user's **last interaction point** — everything after runs autonomously
+- Invoke the writing-plans skill with autonomous context: the design is approved, no further user input needed
+- The pipeline from here: writing-plans → alignment-check → team execution → PR creation → PR monitoring
+- Do NOT invoke any other skill. writing-plans is the next step. It handles the rest of the autonomous pipeline.
 
 ## Key Principles
 
-- **One question at a time** - Don't overwhelm with multiple questions
+- **Adaptive question batching** - Group 2-4 related questions per form, follow up with targeted singles
 - **Multiple choice preferred** - Easier to answer than open-ended when possible
 - **YAGNI ruthlessly** - Remove unnecessary features from all designs
 - **Explore alternatives** - Always propose 2-3 approaches before settling
 - **Incremental validation** - Present design, get approval before moving on
 - **Be flexible** - Go back and clarify when something doesn't make sense
+- **Design approval = autonomy handoff** - After design approval, the pipeline runs without user input
