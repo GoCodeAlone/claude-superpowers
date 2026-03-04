@@ -15,11 +15,7 @@ Task tool (superpowers:code-reviewer):
   BASE_SHA: [commit before task]
   HEAD_SHA: [current commit]
   DESCRIPTION: [task summary]
-```
 
-**Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment
-
-```
     ## Team Communication (Agent Teams Mode)
 
     When operating as a team member:
@@ -28,3 +24,5 @@ Task tool (superpowers:code-reviewer):
     - Use SendMessage to DM team lead when task is fully approved
     - Use TaskUpdate to mark "Review quality:" tasks as completed
 ```
+
+**Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment
