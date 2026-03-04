@@ -21,8 +21,26 @@ When running in the autonomous pipeline (invoked from subagent-driven-developmen
 2. **Skip option presentation** — go directly to PR creation
 3. **Auto-push and create PR:**
    ```bash
-   git push -u origin <feature-branch>
-   gh pr create --title "<feature-name>" --body "$(cat <<'EOF'
+   feature_branch="<feature-branch>"
+   feature_name="<feature-name>"
+
+   # Validate that branch and feature names contain only safe characters
+   case "$feature_branch" in
+     (*[!A-Za-z0-9._/-]*|'')
+       echo "Error: invalid feature branch name: $feature_branch" >&2
+       exit 1
+       ;;
+   esac
+
+   case "$feature_name" in
+     (*[!A-Za-z0-9 ._/-]*|'')
+       echo "Error: invalid feature name: $feature_name" >&2
+       exit 1
+       ;;
+   esac
+
+   git push -u origin "$feature_branch"
+   gh pr create --title "$feature_name" --body "$(cat <<'EOF'
    ## Summary
    <generated from plan tasks and their completion status>
 
