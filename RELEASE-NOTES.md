@@ -1,5 +1,54 @@
 # Superpowers Release Notes
 
+## v5.0.0 (2026-03-04)
+
+### New Features
+
+**Agent Teams as default execution mode**
+
+`subagent-driven-development` now uses Claude's Agent Teams API (TeamCreate, SendMessage, TaskCreate/Update/List) as the default execution model. A role-based team replaces the sequential single-subagent flow:
+
+- **Team Lead (Opus)** — orchestration only, no implementation
+- **Implementers (Sonnet)** — claim and implement tasks from shared task list
+- **Spec Reviewer (Sonnet)** — verifies implementation matches spec before quality review
+- **Code Reviewer (Sonnet)** — quality review after spec approval
+
+Team sizing scales with plan size: 1 implementer (1-5 tasks), 2 implementers (6-15), 3 implementers (16+). All reviewers operate via DM-based handoffs, not polling. Sequential subagent fallback is preserved when Agent Teams is unavailable.
+
+**Design-to-plan alignment check**
+
+New `alignment-check` skill verifies that an implementation plan faithfully covers every design requirement — no missing coverage, no scope creep. Dispatches a Sonnet agent to forward-trace (design → plan) and reverse-trace (plan → design), then reports PASS/FAIL with a coverage table. On FAIL, feeds drift items back to `writing-plans` for revision (max 2 cycles before escalating to user).
+
+**Full autonomy after design approval**
+
+After a design is approved in brainstorming, the entire pipeline now runs without user interaction:
+
+`brainstorming → writing-plans → alignment-check → subagent-driven-development → finishing-a-development-branch → pr-monitoring`
+
+The design approval in brainstorming is the last user interaction point. Everything after is autonomous.
+
+**Adaptive multi-question brainstorming**
+
+`brainstorming` now uses AskUserQuestion's multi-question capability instead of single questions one at a time. First form groups 2-4 related questions covering purpose, constraints, scope, and tech choices. Follow-up forms are targeted singles based on interesting or ambiguous answers. Reduces round-trips while preserving thoroughness.
+
+**PR monitoring with auto-fix**
+
+New `pr-monitoring` skill spawns a background agent that monitors open PRs in a loop: checks CI status, reads failure logs, fixes root causes, commits and pushes fixes. Also monitors and addresses review comments. Safety limits prevent runaway fixes: max 5 CI fix attempts per unique failure, max 3 revision rounds per review comment, 30 min total duration. Invoked automatically by `finishing-a-development-branch` in autonomous mode.
+
+### Changed
+
+**`finishing-a-development-branch` autonomous path**
+
+Added autonomous mode: when invoked from the pipeline (not by user), skips the 4-option menu and goes directly to push + PR creation with a structured body (summary, design link, plan link, per-task changes). Then spawns pr-monitoring as a background agent.
+
+**`writing-plans` autonomous mode**
+
+When invoked from the brainstorming pipeline, skips user plan review, invokes alignment-check, and on PASS invokes subagent-driven-development automatically. Manual mode (direct invocation) preserves the existing execution choice prompt.
+
+**`using-superpowers` pipeline documentation**
+
+Updated Skill Priority section to document pipeline auto-chaining as item 3. "Let's build X" now explicitly routes through the autonomous pipeline after design approval.
+
 ## v4.3.1 (2026-02-21)
 
 ### Added
