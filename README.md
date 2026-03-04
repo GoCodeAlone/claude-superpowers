@@ -28,18 +28,28 @@ Thanks!
 
 **Note:** Installation differs by platform. Claude Code or Cursor have built-in plugin marketplaces. Codex and OpenCode require manual setup.
 
-
 ### Claude Code (via Plugin Marketplace)
 
-In Claude Code, register the marketplace first:
+If you have the upstream (obra) superpowers plugin installed, **uninstall it first** — both plugins use the same `superpowers` name and will conflict:
 
 ```bash
-/plugin marketplace add obra/superpowers-marketplace
+# 1. Remove existing superpowers plugin (if installed)
+/plugin uninstall superpowers
+
+# 2. Remove obra's marketplace (if registered)
+/plugin marketplace remove superpowers-marketplace
+
+# 3. Restart Claude Code to apply removals
+/exit
 ```
 
-Then install the plugin from this marketplace:
+Then in a fresh session, add the GoCodeAlone marketplace and install:
 
 ```bash
+# 4. Register the GoCodeAlone marketplace
+/plugin marketplace add GoCodeAlone/superpowers-marketplace
+
+# 5. Install the plugin
 /plugin install superpowers@superpowers-marketplace
 ```
 
@@ -56,7 +66,7 @@ In Cursor Agent chat, install from marketplace:
 Tell Codex:
 
 ```
-Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md
+Fetch and follow instructions from https://raw.githubusercontent.com/GoCodeAlone/claude-superpowers/refs/heads/main/.codex/INSTALL.md
 ```
 
 **Detailed docs:** [docs/README.codex.md](docs/README.codex.md)
@@ -66,7 +76,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/obra/superp
 Tell OpenCode:
 
 ```
-Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md
+Fetch and follow instructions from https://raw.githubusercontent.com/GoCodeAlone/claude-superpowers/refs/heads/main/.opencode/INSTALL.md
 ```
 
 **Detailed docs:** [docs/README.opencode.md](docs/README.opencode.md)
@@ -153,5 +163,6 @@ MIT License - see LICENSE file for details
 
 ## Support
 
-- **Issues**: https://github.com/obra/superpowers/issues
-- **Marketplace**: https://github.com/obra/superpowers-marketplace
+- **Issues**: https://github.com/GoCodeAlone/claude-superpowers/issues
+- **Marketplace**: https://github.com/GoCodeAlone/superpowers-marketplace
+- **Upstream**: https://github.com/obra/superpowers
