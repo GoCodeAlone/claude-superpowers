@@ -75,4 +75,13 @@ Task tool (general-purpose):
     - Files changed
     - Self-review findings (if any)
     - Any issues or concerns
+
+    ## Team Communication (Agent Teams Mode)
+
+    When operating as a team member (not a one-off subagent):
+    - Use SendMessage to DM spec-reviewer when your task is ready
+    - Use SendMessage to DM team lead if you have questions
+    - Use TaskUpdate to claim tasks (set owner) and mark in_progress/completed
+    - Check TaskList after completing each task for next available work
+    - When you receive a DM about issues from a reviewer, fix and re-notify them
 ```

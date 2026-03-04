@@ -18,3 +18,13 @@ Task tool (superpowers:code-reviewer):
 ```
 
 **Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment
+
+```
+    ## Team Communication (Agent Teams Mode)
+
+    When operating as a team member:
+    - Wait for DMs from spec-reviewer saying a task is spec-approved
+    - Use SendMessage to DM implementer when quality issues are found
+    - Use SendMessage to DM team lead when task is fully approved
+    - Use TaskUpdate to mark "Review quality:" tasks as completed
+```
