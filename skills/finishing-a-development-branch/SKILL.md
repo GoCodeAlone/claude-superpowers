@@ -13,6 +13,40 @@ Guide completion of development work by presenting clear options and handling ch
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
+## Autonomous Mode
+
+When running in the autonomous pipeline (invoked from subagent-driven-development in autonomous mode):
+
+1. **Verify tests pass** — same as manual mode, abort if failing
+2. **Skip option presentation** — go directly to PR creation
+3. **Auto-push and create PR:**
+   ```bash
+   git push -u origin <feature-branch>
+   gh pr create --title "<feature-name>" --body "$(cat <<'EOF'
+   ## Summary
+   <generated from plan tasks and their completion status>
+
+   ## Design
+   See: docs/plans/YYYY-MM-DD-<topic>-design.md
+
+   ## Implementation Plan
+   See: docs/plans/YYYY-MM-DD-<feature>.md
+
+   ## Changes
+   <per-task summary of what was implemented>
+
+   🤖 Generated with [Claude Code](https://claude.com/claude-code)
+   EOF
+   )"
+   ```
+4. **Invoke pr-monitoring** — spawn background agent to monitor CI and reviews
+5. **Report PR URL** — output the PR link for the user
+
+**Do NOT:**
+- Present the 4-option menu in autonomous mode
+- Ask for user confirmation
+- Wait for user input
+
 ## The Process
 
 ### Step 1: Verify Tests
@@ -195,6 +229,9 @@ git worktree remove <worktree-path>
 **Called by:**
 - **subagent-driven-development** (Step 7) - After all tasks complete
 - **executing-plans** (Step 5) - After all batches complete
+
+**Calls (autonomous mode):**
+- **superpowers:pr-monitoring** - After PR creation, monitors CI and reviews
 
 **Pairs with:**
 - **using-git-worktrees** - Cleans up worktree created by that skill
