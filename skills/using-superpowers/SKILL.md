@@ -42,6 +42,7 @@ digraph skill_flow {
     "Already brainstormed?" -> "Invoke brainstorming skill" [label="no"];
     "Already brainstormed?" -> "Invoke writing-plans skill\n(prefers Claude's Plan Mode)" [label="yes"];
     "Invoke brainstorming skill" -> "Might any skill apply?";
+    "Invoke writing-plans skill\n(prefers Claude's Plan Mode)" -> "Might any skill apply?";
 
     "User message received" -> "Might any skill apply?";
     "Might any skill apply?" -> "Invoke Skill tool" [label="yes, even 1%"];
