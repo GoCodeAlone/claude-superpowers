@@ -17,6 +17,24 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
 
+## Plan Mode Detection
+
+**Prefer Claude's Plan Mode when available.** If you are running in Claude Code and can enter Plan Mode (e.g. via `Shift+Tab` or the `/plan` command), use it to draft the implementation plan. If Claude's Plan Mode is not available (Cursor, Codex, OpenCode, or other environments), use the Built-In Planning Process below.
+
+### Using Claude's Plan Mode (Claude Code)
+
+1. **Enter Plan Mode** — explore the codebase, analyze the design, and draft the implementation plan using Claude's native Plan Mode
+2. **Follow the plan format below** — structure your Plan Mode output using the same Plan Document Header and Task Structure defined in this skill
+3. **Exit Plan Mode** — once the plan is fully drafted
+4. **Save the plan** — write the plan to `docs/plans/YYYY-MM-DD-<feature-name>.md` using the exact format from Plan Document Header and Task Structure sections below
+5. **Continue the pipeline** — proceed to Execution Handoff as normal
+
+The plan document you save MUST follow the same format described in Plan Document Header and Task Structure below, regardless of whether it was drafted in Plan Mode or with the built-in process. This ensures downstream skills (alignment-check, executing-plans, subagent-driven-development) work correctly.
+
+### Built-In Planning Process (Non-Claude Code)
+
+When Claude's Plan Mode is not available, use the full planning process described in the sections below to write the plan directly.
+
 ## Autonomous Mode
 
 When invoked from brainstorming with autonomous context (design already approved):

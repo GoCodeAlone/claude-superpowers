@@ -87,6 +87,7 @@ digraph brainstorming {
 **Autonomous handoff:**
 - This is the user's **last interaction point** — everything after runs autonomously
 - Invoke the writing-plans skill with autonomous context: the design is approved, no further user input needed
+- writing-plans will prefer Claude's Plan Mode if available (Claude Code), falling back to its built-in planning process in other environments
 - The pipeline from here: writing-plans → alignment-check → team execution → PR creation → PR monitoring
 - Do NOT invoke any other skill. writing-plans is the next step. It handles the rest of the autonomous pipeline.
 
