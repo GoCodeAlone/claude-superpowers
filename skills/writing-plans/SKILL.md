@@ -40,8 +40,8 @@ When Claude's Plan Mode is not available, use the full planning process describe
 When invoked from brainstorming with autonomous context (design already approved):
 
 1. **Skip user plan review** — write the plan directly without presenting it for approval
-2. **Invoke alignment-check** — dispatch the alignment verification agent
-3. **On alignment PASS** — invoke subagent-driven-development to begin execution
+2. **Invoke `superpowers:alignment-check`** — dispatch the alignment verification agent
+3. **On alignment PASS** — invoke `superpowers:subagent-driven-development` to begin execution
 4. **On alignment FAIL** — revise the plan based on drift items, re-check (max 2 cycles)
 5. **On persistent FAIL** — escalate to user with unresolved drift summary
 
@@ -58,10 +58,10 @@ Do not add YAML frontmatter to signal design-only mode. Saved plan documents mus
 1. Save the plan to `docs/plans/<filename>.md` as normal.
 2. Commit the plan as normal.
 3. Invoke `superpowers:alignment-check` as normal.
-4. **On alignment PASS: STOP.** Do NOT invoke subagent-driven-development.
+4. **On alignment PASS: STOP.** Do NOT invoke `superpowers:subagent-driven-development`.
 5. **On alignment FAIL:** revise the plan based on drift items, re-check (max 2 cycles) — same as default Autonomous Mode. After revision, if PASS, still STOP (do not proceed to execution).
-6. **On persistent FAIL after the max 2 cycles:** escalate to the user with an unresolved drift summary — same as Autonomous Mode step 5. Do NOT invoke subagent-driven-development or dispatch any execution.
-7. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `subagent-driven-development` directly once alignment issues are resolved.
+6. **On persistent FAIL after the max 2 cycles:** escalate to the user with an unresolved drift summary — same as Autonomous Mode step 5. Do NOT invoke `superpowers:subagent-driven-development` or dispatch any execution.
+7. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `superpowers:subagent-driven-development` directly once alignment issues are resolved.
 
 **When to use:**
 
@@ -69,7 +69,7 @@ Do not add YAML frontmatter to signal design-only mode. Saved plan documents mus
 - Cross-cutting designs that affect multiple workstreams; lock the design in before any one workstream starts.
 - Designs with prerequisites in-flight elsewhere; queue the plan now, execute when prerequisites land.
 
-**Default (no flag):** alignment-check PASS → invoke subagent-driven-development. Same as before.
+**Default (no flag):** `superpowers:alignment-check` PASS → invoke `superpowers:subagent-driven-development`. Same as before.
 
 ## Verification per change class
 
