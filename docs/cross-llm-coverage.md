@@ -16,7 +16,7 @@ Host-by-host capability matrix for the Superpowers skills system.
 | Task list / TodoWrite | ✅ built-in | ❌ no documented equivalent | ⚠️ `update_plan` mapping (see `.opencode/INSTALL.md`) | ⚠️ unknown |
 | AGENTS.md / project context | CLAUDE.md | AGENTS.md (+ `.override.md`) | AGENTS.md | n/a |
 | Host declaration for skill conditionals | `Host: claude-code` in CLAUDE.md | `Host: codex` in `~/.codex/AGENTS.md` | `Host: opencode` in `~/.config/opencode/AGENTS.md` | n/a |
-| Skill discovery path (user scope) | `~/.claude/skills/` | `~/.agents/skills/` | `~/.config/opencode/skills/` | via plugin (no manual symlink) |
+| Skill discovery path (user scope) | `~/.claude/skills/` (personal skills); superpowers installed to `~/.claude/plugins/marketplace/superpowers/` via marketplace | `~/.agents/skills/` | `~/.config/opencode/skills/` | via plugin (no manual symlink) |
 | Model tier vocabulary | role names → `haiku`/`sonnet`/`opus` (see `agents/model-tiers.md`) | role names → `gpt-5.4-mini`/`gpt-5.4`/`gpt-5.5` | role names → host-pass-through | role names → host-pass-through |
 
 ## Notes
