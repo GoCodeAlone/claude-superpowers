@@ -61,12 +61,12 @@ digraph tdd_cycle {
     verify_red -> green [label="yes"];
     verify_red -> red [label="wrong\nfailure"];
     green -> verify_green;
-    verify_green -> verify_invariant [label="yes"];
+    verify_green -> verify_invariant [label="yes\n(first pass)"];
     verify_green -> green [label="no"];
+    verify_green -> next [label="done\n(post-refactor)"];
     verify_invariant -> refactor [label="proven"];
     verify_invariant -> red [label="test\ndoesn't\ncatch bug"];
     refactor -> verify_green [label="stay\ngreen"];
-    verify_green -> next;
     next -> red;
 }
 ```
@@ -225,6 +225,8 @@ After green only:
 
 Keep tests green. Don't add behavior.
 
+**Note:** The Verify Regression Invariant step applies once per bug fix (after the initial GREEN), not after each refactor cycle. Refactoring must not change the fix path — if it does, that's a new production code change requiring a new test.
+
 ### Repeat
 
 Next failing test for next feature.
@@ -307,7 +309,9 @@ A `Dispatcher` struct has methods `Create`, `Read`, `Update`, `Delete`, `Inspect
 
 ```go
 // Regression gate for the class invariant: every Dispatcher method must
-// include "kind" in its Send args. New methods MUST include the same arg.
+// include "kind" in its Send args.
+// IMPORTANT: add a new row to cases whenever a new method is added —
+// the test only gates methods explicitly listed here.
 func TestDispatcher_AllMethods_IncludeKind(t *testing.T) {
     req := Request{Name: "test-resource"} // illustrative; use your actual Request type
     cases := []struct {
@@ -322,7 +326,7 @@ func TestDispatcher_AllMethods_IncludeKind(t *testing.T) {
     }
     for _, tc := range cases {
         t.Run(tc.name, func(t *testing.T) {
-            spy := &spyClient{} // spyClient is a test double; implement lastArgs capture for your client type
+            spy := &spyClient{} // spyClient is a test double; implement lastArgs as map[string]string (or use a type assertion if map[string]any)
             d := &Dispatcher{client: spy, kind: "widget"}
             if err := tc.call(d); err != nil {
                 t.Fatalf("unexpected error: %v", err)

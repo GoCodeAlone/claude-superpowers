@@ -3,8 +3,8 @@
 - **RED**: `TestSum_HandlesSingleElement` written, runs, FAILs.
 - **GREEN**: fix applied, test PASSES.
 - **Verify Regression Invariant**:
-  - Revert fix. Run `TestSum_HandlesSingleElement`. Must FAIL. ✓ FAILS.
-  - Restore fix. Must PASS. ✓ PASSES.
+  - Revert fix. Run `TestSum_HandlesSingleElement`. Must FAIL. [confirmed: FAILS]
+  - Restore fix. Must PASS. [confirmed: PASSES]
   - Proof pasted in PR body:
     ```
     With fix reverted:
