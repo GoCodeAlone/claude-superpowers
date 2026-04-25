@@ -102,7 +102,7 @@ Agent tool:
     6. DM spec-reviewer: "Task N ready for review" with summary of what you built
     7. Wait for reviewer feedback — fix issues if any
     8. After code-reviewer approves, check TaskList for next task
-    9. When no tasks remain, report to team lead
+    9. When no tasks remain, report to team-lead
 
     ## Design Document
     Reference: <design-doc-path>
@@ -119,7 +119,7 @@ Agent tool:
     - Work in the project directory: <working-dir>
     - Use `isolation: "worktree"` is NOT needed — you're already in an isolated context
     - Always commit your work before requesting review
-    - If you have questions, DM the team lead — don't guess
+    - If you have questions, DM the team-lead — don't guess
 ```
 
 **Spec Reviewer** (use `./spec-reviewer-prompt.md` as base):
@@ -183,7 +183,7 @@ Agent tool:
        - Wait for fix and re-review
     4. If approved:
        - Mark the "Review quality:" task as completed
-       - DM team lead: "Task N fully approved"
+       - DM team-lead: "Task N fully approved"
 
     ## Team Conventions
     See `agents/team-conventions.md` for adversarial framing and the
@@ -193,7 +193,7 @@ Agent tool:
 
 **4. Monitor and steer:**
 
-As team lead, your job is now orchestration:
+As team-lead, your job is now orchestration:
 - Monitor task completions via TaskList
 - Reassign work if an implementer is stuck (DM them)
 - Answer implementer questions (they'll DM you)

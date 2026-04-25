@@ -24,7 +24,7 @@ Task tool (superpowers:code-reviewer):
   When operating as a team member:
   - Wait for DMs from spec-reviewer saying a task is spec-approved
   - DM implementer when quality issues are found
-  - DM team lead when task is fully approved
+  - DM team-lead when task is fully approved
   - Use TaskUpdate to mark "Review quality:" tasks as completed
 ```
 
