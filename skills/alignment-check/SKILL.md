@@ -69,8 +69,38 @@ Agent tool (general-purpose, model: balanced):
   description: "Check alignment: design vs plan"
   prompt: |
     You are verifying that an implementation plan aligns with its design document.
-    Read docs/plans/YYYY-MM-DD-<topic>-design.md and docs/plans/YYYY-MM-DD-<feature>.md,
-    then produce an Alignment Report following the instructions in the alignment-check skill.
+
+    Read docs/plans/YYYY-MM-DD-<topic>-design.md and docs/plans/YYYY-MM-DD-<feature>.md.
+
+    Perform a forward trace (design → plan):
+    - For each requirement, constraint, and acceptance criterion in the design, find the plan task(s) that implement it.
+    - If no plan task covers a design item, flag it as MISSING.
+
+    Perform a reverse trace (plan → design):
+    - For each task in the implementation plan, find the design requirement, constraint, or acceptance criterion it satisfies.
+    - If no design item justifies a plan task, flag it as SCOPE CREEP.
+
+    Return exactly this report format:
+
+    ### Alignment Report
+
+    **Status:** PASS | FAIL
+
+    **Coverage:**
+    | Design Requirement | Plan Task(s) | Status |
+    |---|---|---|
+    | [requirement] | Task N | ✅ Covered |
+    | [requirement] | — | ❌ MISSING |
+
+    **Scope Check:**
+    | Plan Task | Design Requirement | Status |
+    |---|---|---|
+    | Task N | [requirement] | ✅ Justified |
+    | Task N | — | ⚠️ SCOPE CREEP |
+
+    **Drift Items:** [list specific items to fix]
+
+    Set **Status:** to PASS only if every design item is covered and every plan task is justified. Otherwise set it to FAIL.
 ```
 </host>
 

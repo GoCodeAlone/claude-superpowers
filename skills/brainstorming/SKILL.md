@@ -62,15 +62,15 @@ digraph brainstorming {
   - **First batch:** covers purpose, constraints, scope, and tech choices
   - **Follow-ups:** Targeted single questions based on interesting or ambiguous answers
 
-<host: claude-code>
+  <host: claude-code>
   - Use multiple choice options when possible (AskUserQuestion supports 2-4 options per question)
   - AskUserQuestion supports up to 4 questions per form — use this to reduce round-trips
-</host>
+  </host>
 
-<host: codex, opencode, cursor>
+  <host: codex, opencode, cursor>
   - Present options as a numbered list and ask the user to reply with the chosen number
   - Group no more than 3 questions per turn to avoid overloading the chat
-</host>
+  </host>
 
 - Focus on understanding: purpose, constraints, success criteria
 
