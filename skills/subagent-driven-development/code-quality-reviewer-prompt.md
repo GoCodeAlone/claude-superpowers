@@ -40,14 +40,19 @@ Task tool (superpowers:code-reviewer):
 
   ## Required workflow (DO ALL FOUR — do not skip any)
 
-  1. **Read the diff with `git show <HEAD_SHA>`** (NOT `git diff HEAD~1` —
-     the latter pulls in commits that may not belong to this task).
+  1. **Read the diff for the WHOLE task:**
+     - When `BASE_SHA` and `HEAD_SHA` are both known: `git diff <BASE_SHA>..<HEAD_SHA>` (covers all commits in the task)
+     - When you only have the tip commit: `git show <HEAD_SHA>` covers ONE commit. Check `git log <suspected-base>..<HEAD_SHA>` first; if the task spans multiple commits, prefer the range diff.
+     - Do NOT use `git diff HEAD~1` blindly — it picks an arbitrary parent that may not be the task's base.
 
   2. **Run the relevant tests yourself** in the same turn. Do NOT trust
-     the implementer's "tests pass" report:
-     - For Go diffs: `go test -race -tags=e2e ./<changed-pkg>/...`
-     - For Rust diffs: `cargo test --manifest-path <path> --features <relevant>`
-     - For tests-only diffs: still run the test you reviewed; capture pass/fail.
+     the implementer's "tests pass" report. Use the project's actual test
+     invocation, NOT a hard-coded one — read the project's CONTRIBUTING.md /
+     README / Makefile if unsure:
+     - Go projects with build tags: `go test -race -tags=<project's tag(s)> ./<changed-pkg>/...` — only include `-tags=e2e` if the project actually uses that tag AND you intend to run the integration tests. Don't force non-hermetic e2e runs that the rubric's hermeticity rule says to flag.
+     - Go projects without build tags: `go test -race ./<changed-pkg>/...`
+     - Rust: `cargo test --manifest-path <path>` (add `--features <relevant>` only when the diff actually changed features-gated code).
+     - For tests-only diffs: run only the changed test file; capture pass/fail.
 
   3. **Run the full bug-class checklist from
      `skills/requesting-code-review/SKILL.md`**. Every class. State for

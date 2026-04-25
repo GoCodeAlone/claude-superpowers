@@ -32,9 +32,11 @@ Task tool (general-purpose):
 
     ## Required workflow (DO ALL FIVE)
 
-    1. **Read the actual diff** with `git show <HEAD_SHA>`. Do NOT trust
-       the implementer's summary. Do NOT use `git diff HEAD~1` (it pulls
-       in unrelated commits).
+    1. **Read the actual diff for the WHOLE task**:
+       - If `BASE_SHA` and `HEAD_SHA` are both known: `git diff <BASE_SHA>..<HEAD_SHA>` (covers all commits in the task)
+       - If only the latest commit is provided: `git show <HEAD_SHA>` covers a single commit; if you suspect the task spans multiple commits (look at `git log <suspected-base>..<HEAD_SHA>`), prefer the range diff
+       - Do NOT trust the implementer's summary
+       - Do NOT use `git diff HEAD~1` blindly — it picks an arbitrary parent that may not be the task's base
 
     2. **Walk every "Acceptance" bullet from the task description**.
        For each, locate the corresponding change in the diff:
