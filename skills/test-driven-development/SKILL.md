@@ -53,6 +53,7 @@ digraph tdd_cycle {
     verify_red [label="Verify fails\ncorrectly", shape=diamond];
     green [label="GREEN\nMinimal code", shape=box, style=filled, fillcolor="#ccffcc"];
     verify_green [label="Verify passes\nAll green", shape=diamond];
+    verify_invariant [label="Verify Regression\nInvariant", shape=diamond, style=filled, fillcolor="#ffffcc"];
     refactor [label="REFACTOR\nClean up", shape=box, style=filled, fillcolor="#ccccff"];
     next [label="Next", shape=ellipse];
 
@@ -60,8 +61,10 @@ digraph tdd_cycle {
     verify_red -> green [label="yes"];
     verify_red -> red [label="wrong\nfailure"];
     green -> verify_green;
-    verify_green -> refactor [label="yes"];
+    verify_green -> verify_invariant [label="yes"];
     verify_green -> green [label="no"];
+    verify_invariant -> refactor [label="proven"];
+    verify_invariant -> green [label="test\ndoesn't\ncatch bug"];
     refactor -> verify_green [label="stay\ngreen"];
     verify_green -> next;
     next -> red;
@@ -304,6 +307,7 @@ A `Dispatcher` struct has methods `Create`, `Read`, `Update`, `Delete`, `Inspect
 // Regression gate for the class invariant: every Dispatcher method must
 // include "kind" in its Send args. New methods MUST include the same arg.
 func TestDispatcher_AllMethods_IncludeKind(t *testing.T) {
+    req := Request{Name: "test-resource"} // illustrative; use your actual Request type
     cases := []struct {
         name string
         call func(d *Dispatcher) error
@@ -318,7 +322,9 @@ func TestDispatcher_AllMethods_IncludeKind(t *testing.T) {
         t.Run(tc.name, func(t *testing.T) {
             spy := &spyClient{}
             d := &Dispatcher{client: spy, kind: "widget"}
-            _ = tc.call(d)
+            if err := tc.call(d); err != nil {
+                t.Fatalf("%s: unexpected error: %v", tc.name, err)
+            }
             if spy.lastArgs["kind"] != "widget" {
                 t.Errorf("%s: missing or wrong kind in args", tc.name)
             }
