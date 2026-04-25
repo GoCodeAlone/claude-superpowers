@@ -96,6 +96,9 @@ Superpowers skills run on any host that supports the SKILL.md format. Host-speci
 | OpenCode | `~/.config/opencode/skills/superpowers/` | yes | Tool mapping documented in `.opencode/INSTALL.md` |
 | Cursor | manual reference | partial | Plugin manifest stub; install path TBD |
 
+Full capability matrix: [docs/cross-llm-coverage.md](docs/cross-llm-coverage.md)  
+Per-skill host-conditional audit: [tests/cross-llm-coverage.md](tests/cross-llm-coverage.md)
+
 ## The Basic Workflow
 
 1. **brainstorming** - Activates before writing code. Refines rough ideas through questions, explores alternatives, presents design in sections for validation. Saves design document.
