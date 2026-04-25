@@ -39,11 +39,9 @@ instead of a task queue. See [Sequential Mode](#sequential-mode).
 
 ---
 
-## Agent Teams Mode
-
-Agent Teams mode is available only in Claude Code. On other hosts, use [Sequential Mode](#sequential-mode) instead.
-
 <host: claude-code>
+
+## Agent Teams Mode
 
 ### Team Structure
 
@@ -235,6 +233,14 @@ TeamDelete()
 ```
 
 Invoke `superpowers:finishing-a-development-branch`.
+
+</host>
+
+<host: codex, opencode, cursor>
+
+## Sequential Handoff Mode
+
+Use Sequential Mode — see the [Sequential Mode](#sequential-mode) section below.
 
 </host>
 
