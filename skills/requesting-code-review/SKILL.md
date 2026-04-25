@@ -19,6 +19,27 @@ Why: the same base model produces dramatically different output under "find what
 
 **Reflexive approval is forbidden.** If the reviewer finds nothing wrong, they must state which checks were run (the bug-class checklist below) and what specifically they verified. A bare "looks good" is rejected.
 
+## Scope-vs-dispatch compliance gate (RUN FIRST)
+
+Before any other check, the reviewer compares the PR diff against the dispatch text — the message that asked the implementer to do the work.
+
+**Diff-vs-dispatch comparison:**
+
+1. List each thing the dispatch asked for (acceptance criteria, named files, named tests, named behaviors).
+2. For each, find the corresponding change in the PR diff.
+3. List each thing the PR diff does that the dispatch did NOT ask for.
+
+**Both sides are findings:**
+
+- Dispatch asked for X, PR doesn't include X → **MISSING** (Important or Critical)
+- PR includes Y not in dispatch → **SCOPE CREEP** (Minor unless it's risky, then Important)
+
+A common pattern this catches: dispatch says "table-driven test covering N methods", PR delivers "single-line assertion on one method." Old reviewer (validation framing) signs off. New reviewer (compliance gate) flags as MISSING.
+
+**This gate runs before the bug-class scan** because scope mismatch is often the most expensive finding to fix late, and signing off on a too-narrow PR locks in the gap.
+
+If the implementer's choice differs from the dispatch but is justified, the implementer must say so explicitly in the PR body before review (e.g., "dispatch asked for X; I instead did Y because..."). Reviewer then evaluates the justification on its merits rather than flagging as drift.
+
 ## Bug-class checklist (must scan)
 
 The reviewer must explicitly scan for each of these bug classes on every diff. The checklist is the floor, not the ceiling — additional findings are welcome.
