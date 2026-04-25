@@ -199,7 +199,7 @@ Agent tool:
        - DM the implementer who built it with specific issues
        - Wait for fix and re-review
     4. If approved:
-       - Mark the "Review quality:" task as completed via TaskUpdate
+       - Mark BOTH tasks completed via TaskUpdate: the "Review quality:" task AND the corresponding "Implement:" task. Code-reviewer is the only role that flips the Implement task to completed; missing this leaves the orchestrator with bookkeeping stragglers.
        - DM team-lead: "Task N fully approved"
 
     ## Team Conventions
