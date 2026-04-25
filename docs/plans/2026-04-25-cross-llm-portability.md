@@ -65,22 +65,19 @@ PRs A and E are the bookend infrastructure work. B, C, D are content edits and c
 
 **Goal:** A repeatable check that fails if a forbidden Claude-only token appears in a skill body **outside** an allowed context (a `<host: claude-code>` block, the model-tiers table, or a known-allowed file).
 
-**Forbidden tokens (full word, case-sensitive):**
+**Forbidden tokens (full word, matched in both title-case and lowercase):**
 
 ```
-TodoWrite
-TaskCreate
-TaskUpdate
-TaskList
-TaskGet
-TeamCreate
-TeamDelete
-SendMessage
-EnterPlanMode
-Sonnet
-Opus
-Haiku
+TodoWrite TaskCreate TaskUpdate TaskList TaskGet
+TeamCreate TeamDelete SendMessage EnterPlanMode
+Sonnet Opus Haiku
+sonnet opus haiku
 ```
+
+Model-brand names are flagged in both cases because skills may reference them
+in YAML config (`model: sonnet`) as well as prose. Claude-specific tool names
+that appear in existing skill files (`AskUserQuestion`, `Agent`) are not in the
+initial token list; they will be added once those skills are migrated in PRs B–D.
 
 **Step 1: Write the failing test**
 
@@ -97,19 +94,27 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 # Tokens that must not appear in host-neutral skill text.
+# Tool names below are Claude-Code-specific. Model-brand names are listed in
+# both title-case and lowercase because skills may reference them in YAML
+# (model: sonnet) as well as in prose. Skills must use role names instead
+# (fast / balanced / frontier / coding-specialist) per agents/model-tiers.md.
+# Note: Claude-specific tool names like AskUserQuestion and Agent are not in
+# this list yet — they will be addressed as skills migrate in PRs B–D.
+# Once migration is complete, add them here to prevent future bleed.
 TOKENS=(
   TodoWrite TaskCreate TaskUpdate TaskList TaskGet
   TeamCreate TeamDelete SendMessage EnterPlanMode
   Sonnet Opus Haiku
+  sonnet opus haiku
 )
 
 # Allowed files: tokens may appear here without restriction.
+# Keep paths to files under skills/ or agents/ only — those are the
+# directories that the find command below actually scans.
 ALLOWED_FILES=(
   "agents/model-tiers.md"
-  "tests/skill-content-grep.sh"
 )
 
-fail=0
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 
@@ -123,17 +128,17 @@ find skills agents -type f -name '*.md' -print0 \
         fi
       done
 
-      # Single-pass AWK: emit "LINENO:content" for lines outside <host: ...> blocks
-      # where claude-code appears anywhere in the (possibly comma-separated) host list.
-      # This preserves original line numbers and handles multi-host tags like
-      # <host: codex, claude-code> correctly.
+      # Single-pass AWK: emit "LINENO:content" for lines outside exclusive
+      # <host: claude-code> blocks. Only blocks tagged EXCLUSIVELY with
+      # claude-code are skipped — a multi-host block like
+      # <host: codex, claude-code> is NOT skipped because its content is also
+      # shown to codex users who must not see Claude-only tokens.
+      # Markers must appear at the start of a line (after optional whitespace).
       annotated="$(awk '
         BEGIN { skip = 0; ln = 0 }
         {
           ln++
-          if (/^[[:space:]]*<host:/) {
-            if (/claude-code/) { skip = 1; next }
-          }
+          if (/^[[:space:]]*<host:[[:space:]]*claude-code[[:space:]]*>/) { skip = 1; next }
           if (/^[[:space:]]*<\/host>/) { skip = 0; next }
           if (!skip) { print ln ":" $0 }
         }
@@ -144,7 +149,6 @@ find skills agents -type f -name '*.md' -print0 \
         matches="$(printf '%s\n' "$annotated" | grep -w "$token" || true)"
         if [ -n "$matches" ]; then
           printf '%s\n' "$matches" | sed "s|^|$file:|" >> "$tmp"
-          fail=1
         fi
       done
     done
@@ -214,7 +218,7 @@ Skill bodies refer to roles, not brand names:
 
 When the model is following the skill on a specific host, it resolves the role
 through this table. Authors maintaining a skill must use role names, not
-`Sonnet` / `Opus` / `Haiku` / `gpt-5.x`. The grep guard
+`Sonnet` / `Opus` / `Haiku` / `gpt-5.x`. The grep guard || true
 (`tests/skill-content-grep.sh`) enforces this.
 
 ## Updating
@@ -430,10 +434,10 @@ For tier names: replace `Sonnet` with `balanced`, `Opus` with `frontier`, `Haiku
 
 For tool names: wrap the surrounding paragraph in a `<host: claude-code>` block and add a corresponding `<host: codex, opencode, cursor>` block describing the equivalent in those hosts (typically: same workflow, host's native task tracker or in-prose checklist).
 
-**Step 3: Run the grep guard**
+**Step 3: Run the grep guard** || true
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep pr-monitoring
+./tests/skill-content-grep.sh 2>&1 | grep pr-monitoring || true
 ```
 
 Expected: no matches.
@@ -507,7 +511,7 @@ Wrap the `AskUserQuestion` paragraph(s) in `<host: claude-code>`. Add `<host: co
 **Step 3: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep brainstorming
+./tests/skill-content-grep.sh 2>&1 | grep brainstorming || true
 ```
 
 Expect no matches.
@@ -616,7 +620,7 @@ For `implementer-prompt.md`, `spec-reviewer-prompt.md`, `code-quality-reviewer-p
 **Step 3: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep subagent-driven-development
+./tests/skill-content-grep.sh 2>&1 | grep subagent-driven-development || true
 ```
 
 Expect no matches outside `<host: claude-code>` blocks.
@@ -684,7 +688,7 @@ sequentially, or open multiple Cursor windows for true parallelism.
 **Step 2: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep dispatching-parallel-agents
+./tests/skill-content-grep.sh 2>&1 | grep dispatching-parallel-agents || true
 ```
 
 Expect no matches.
@@ -754,7 +758,7 @@ Replace each with the matching role name.
 **Step 3: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep writing-plans
+./tests/skill-content-grep.sh 2>&1 | grep writing-plans || true
 ```
 
 Expect no matches.
@@ -834,7 +838,7 @@ Restructure the surrounding paragraph so the rule "create one tracking entry per
 **Step 4: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep using-superpowers
+./tests/skill-content-grep.sh 2>&1 | grep using-superpowers || true
 ```
 
 Expect no matches.
@@ -878,7 +882,7 @@ Replace line 23 area with:
 **Step 2: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep executing-plans
+./tests/skill-content-grep.sh 2>&1 | grep executing-plans || true
 ```
 
 Expect no matches.
@@ -1142,7 +1146,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run grep guard
+      - name: Run grep guard || true
         run: ./tests/skill-content-grep.sh
 ```
 
