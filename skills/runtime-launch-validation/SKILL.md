@@ -23,7 +23,7 @@ Triggered by changes to any of:
 - Application-startup configuration (config files read at boot)
 - Database migrations
 - Plugin / extension loading paths
-- Interface boundary changes (new method, field, event type, or hook crossing a producer→consumer, caller→callee, sender→handler, or plugin→host boundary)
+- Interface boundary changes (new method, field, event type, or hook crossing any of the boundary classes in `agents/boundary-classes.md`: producer→consumer, caller→callee, sender→handler, or plugin→host)
 
 Triggered NOT by:
 
@@ -42,7 +42,7 @@ Triggered NOT by:
 | Database migration | Apply against ephemeral DB instance; revert (down migration, if applicable); re-apply | Idempotent? No orphaned schema objects? |
 | Library / SDK | Import into a tiny consumer program, exercise the new public surface | Output, behavior matches docs |
 | Plugin / extension | Load it into the host application, exercise a representative call | Host doesn't crash on load; representative call returns |
-| Interface boundary change (new method, field, event type, or hook crossing a producer→consumer, caller→callee, plugin→host, or sender→handler boundary) | Launch both sides/participants as applicable; exercise a real interaction across the boundary — not a mock or stub on either end | The receiving side correctly processes the new data/method/event/hook; no fallback silently swallows the new path; failure-signature scrape clean on all participating sides |
+| Interface boundary change (new method, field, event type, or hook — see `agents/boundary-classes.md` for the canonical boundary-class list) | Launch both sides/participants as applicable; exercise a real interaction across the boundary — not a mock or stub on either end | The receiving side correctly processes the new data/method/event/hook; no fallback silently swallows the new path; failure-signature scrape clean on all participating sides |
 
 ## Failure-signature scrape
 
@@ -95,3 +95,4 @@ The constraint is not an excuse to skip; it's a request for help.
 - `skills/verification-before-completion/SKILL.md` — general evidence-before-assertion principle
 - `skills/finishing-a-development-branch/SKILL.md` — Step 1b invokes this skill
 - `skills/writing-plans/SKILL.md` — related planning guidance for per-change-class verification
+- `agents/boundary-classes.md` — canonical definition of interface boundary classes (producer→consumer, caller→callee, sender→handler, plugin→host)
