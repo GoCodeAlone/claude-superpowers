@@ -97,6 +97,21 @@ Maximum loops: 5 per PR. If the reviewer still finds Critical/Important issues a
 
 **The loop runs even if intermediate rounds had findings of Minor severity only.** The bar is "find what's wrong" — Minor findings don't trigger automatic re-review, but the human or orchestrator inspects them before merge.
 
+## Verdict vocabulary
+
+Reviewer ends every review with exactly one of these verdicts:
+
+- **SHIP-IT** — no Critical, no Important, optionally a few Minor/Nit. Merge.
+- **FIX-FORWARD** — substantive findings, but they're additive. Merge this PR; open a follow-up PR for the findings. Use when the current PR's value is independent and the findings are new work.
+- **REQUEST-CHANGES** — Critical or Important findings that block merge of this PR. Implementer addresses, re-review.
+- **REVERT-AND-REWRITE** — fundamental approach issue; the right answer is a different design. Used after iterative-loop max rounds, or for clear architectural mistakes.
+
+Reviewer must justify the verdict in one sentence:
+
+> Verdict: REQUEST-CHANGES — three Critical findings (sibling-method asymmetry, missing nil-check, unreachable test branch); fixing requires non-trivial code change.
+
+Reflexive SHIP-IT without justification is forbidden.
+
 Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
 
 **Core principle:** Review early, review often.
