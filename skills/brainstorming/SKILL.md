@@ -9,7 +9,7 @@ description: "You MUST use this before any creative work - creating features, bu
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
 
-Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+Start by understanding the current project context, then ask questions using adaptive batching to refine the idea. Once you understand what you're building, present the design and get user approval.
 
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
@@ -24,7 +24,7 @@ Every project goes through this process. A todo list, a single-function utility,
 You MUST create a task for each of these items and complete them in order:
 
 1. **Explore project context** — check files, docs, recent commits
-2. **Ask clarifying questions** — adaptive batching: group 2-4 related questions per form, follow up with targeted singles
+2. **Ask clarifying questions** — adaptive batching: group related questions to reduce round-trips; use targeted singles for follow-ups
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 4. **Present design** — in sections scaled to their complexity, get user approval after each section
 5. **Write design doc** — save to `docs/plans/YYYY-MM-DD-<topic>-design.md` and commit
@@ -58,11 +58,20 @@ digraph brainstorming {
 
 **Understanding the idea:**
 - Check out the current project state first (files, docs, recent commits)
-- Ask questions using adaptive batching with AskUserQuestion:
-  - **First form:** Group 2-4 related questions covering purpose, constraints, scope, and tech choices
-  - **Follow-ups:** Targeted single questions based on interesting or ambiguous answers from previous forms
+- Ask questions using adaptive batching — group related questions to reduce round-trips:
+  - **First batch:** covers purpose, constraints, scope, and tech choices
+  - **Follow-ups:** Targeted single questions based on interesting or ambiguous answers
+
+  <host: claude-code>
   - Use multiple choice options when possible (AskUserQuestion supports 2-4 options per question)
   - AskUserQuestion supports up to 4 questions per form — use this to reduce round-trips
+  </host>
+
+  <host: codex, opencode, cursor>
+  - Present options as a numbered list and ask the user to reply with the chosen number
+  - Group no more than 3 questions per turn to avoid overloading the chat
+  </host>
+
 - Focus on understanding: purpose, constraints, success criteria
 
 **Exploring approaches:**
@@ -106,7 +115,7 @@ When the user wants design exploration without execution, they pass `--design-on
 
 ## Key Principles
 
-- **Adaptive question batching** - Group 2-4 related questions per form, follow up with targeted singles
+- **Adaptive question batching** - Group related questions to reduce round-trips; use targeted singles for follow-ups
 - **Multiple choice preferred** - Easier to answer than open-ended when possible
 - **YAGNI ruthlessly** - Remove unnecessary features from all designs
 - **Explore alternatives** - Always propose 2-3 approaches before settling

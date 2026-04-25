@@ -25,33 +25,62 @@ Invoked automatically by `writing-plans` in autonomous mode. Can also be invoked
 
 ## Dispatching the Alignment Agent
 
-Dispatch a Sonnet agent to perform the comparison:
+Dispatch a `balanced`-tier subagent to verify alignment. The subagent reads both documents and produces an Alignment Report:
+
+**Input:**
+- Design document: `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- Implementation plan: `docs/plans/YYYY-MM-DD-<feature>.md`
+
+**Forward trace (design → plan):**
+For each requirement in the design:
+- Find the plan task(s) that implement it
+- If no task covers it: flag as MISSING
+
+**Reverse trace (plan → design):**
+For each task in the plan:
+- Find the design requirement it satisfies
+- If no requirement justifies it: flag as SCOPE CREEP
+
+**Report format:**
+
+### Alignment Report
+
+**Status:** PASS | FAIL
+
+**Coverage:**
+| Design Requirement | Plan Task(s) | Status |
+|---|---|---|
+| [requirement] | Task N | ✅ Covered |
+| [requirement] | — | ❌ MISSING |
+
+**Scope Check:**
+| Plan Task | Design Requirement | Status |
+|---|---|---|
+| Task N | [requirement] | ✅ Justified |
+| Task N | — | ⚠️ SCOPE CREEP |
+
+**Drift Items:** [list specific items to fix]
+
+<host: claude-code>
+Dispatch using the Agent tool:
 
 ```
-Agent tool (general-purpose, model: sonnet):
+Agent tool (general-purpose, model: balanced):
   description: "Check alignment: design vs plan"
   prompt: |
     You are verifying that an implementation plan aligns with its design document.
 
-    ## Design Document
-    [Read: docs/plans/YYYY-MM-DD-<topic>-design.md]
+    Read docs/plans/YYYY-MM-DD-<topic>-design.md and docs/plans/YYYY-MM-DD-<feature>.md.
 
-    ## Implementation Plan
-    [Read: docs/plans/YYYY-MM-DD-<feature>.md]
+    Perform a forward trace (design → plan):
+    - For each requirement, constraint, and acceptance criterion in the design, find the plan task(s) that implement it.
+    - If no plan task covers a design item, flag it as MISSING.
 
-    ## Your Job
+    Perform a reverse trace (plan → design):
+    - For each task in the implementation plan, find the design requirement, constraint, or acceptance criterion it satisfies.
+    - If no design item justifies a plan task, flag it as SCOPE CREEP.
 
-    **Forward trace (design → plan):**
-    For each requirement in the design:
-    - Find the plan task(s) that implement it
-    - If no task covers it: flag as MISSING
-
-    **Reverse trace (plan → design):**
-    For each task in the plan:
-    - Find the design requirement it satisfies
-    - If no requirement justifies it: flag as SCOPE CREEP
-
-    **Report format:**
+    Return exactly this report format:
 
     ### Alignment Report
 
@@ -70,7 +99,14 @@ Agent tool (general-purpose, model: sonnet):
     | Task N | — | ⚠️ SCOPE CREEP |
 
     **Drift Items:** [list specific items to fix]
+
+    Set **Status:** to PASS only if every design item is covered and every plan task is justified. Otherwise set it to FAIL.
 ```
+</host>
+
+<host: codex, opencode, cursor>
+Run the alignment check inline: read both documents, perform the forward and reverse traces using the Comparison Procedure above, and produce the Alignment Report.
+</host>
 
 ## On FAIL
 
