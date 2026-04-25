@@ -10,7 +10,7 @@ Two failure patterns appear repeatedly but are not named or described in any ski
 
 **P11 — Shortcut bias / band-aid fixes:** An implementation passes tests and satisfies the immediate symptom, but sidesteps the root cause. The underlying defect remains; only its surface expression is suppressed. Future changes re-expose it.
 
-**P12 — One-sided boundary wiring:** A change crosses an interface boundary (producer→consumer, client→server, plugin→host, caller→callee) but only one side is implemented, tested, or validated at runtime. The other side is left as a stub, a TODO, or implicitly assumed to work.
+**P12 — One-sided boundary wiring:** A change crosses an interface boundary (producer→consumer, caller→callee, plugin→host, sender→handler) but only one side is implemented, tested, or validated at runtime. The other side is left as a stub, a TODO, or implicitly assumed to work.
 
 Neither pattern is in the bug-class checklist, the TDD skill, or the runtime-launch-validation skill. Reviewers and implementers have no named target to aim at.
 
@@ -25,7 +25,7 @@ Add two rows to the bug-class checklist table (after the existing "Scope-vs-disp
 | Class | Definition |
 |---|---|
 | **Shortcut / band-aid fix** | The fix suppresses a symptom without addressing the root cause. Examples: nil-guard on a value that should never be nil (why is it nil?); retry loop masking a race condition; special-case for one known-bad input instead of fixing the upstream producer; failing test deleted instead of fixed. Ask: "would this still fail if the root cause were restored?" |
-| **One-sided boundary wiring** | A change touches an interface boundary (producer→consumer, caller→callee, plugin→host) but only one side is implemented or tested. The other side is a stub, TODO, or unchecked assumption. Both sides of every boundary must be wired and have test coverage of the crossing. |
+| **One-sided boundary wiring** | A change touches an interface boundary (producer→consumer, caller→callee, plugin→host, sender→handler) but only one side is implemented or tested. The other side is a stub, TODO, or unchecked assumption. Both sides of every boundary must be wired and have test coverage of the crossing. |
 
 ### 2. `skills/test-driven-development/SKILL.md`
 
@@ -39,7 +39,7 @@ Add two rows to the bug-class checklist table (after the existing "Scope-vs-disp
 
 | Change class | What to launch | What to observe |
 |---|---|---|
-| Interface boundary change (new method, field, or hook crossing a producer→consumer or caller→callee boundary) | Launch both sides; exercise a real call across the boundary (not a mock or stub on either end) | The consumer receives and processes the new data/method/hook correctly; no fallback silently swallows the new path |
+| Interface boundary change (new method, field, or hook crossing a producer→consumer, caller→callee, plugin→host, or sender→handler boundary) | Launch both sides/participants as applicable; exercise a real call across the boundary (not a mock or stub on either end) | The receiving side correctly processes the new data/method/hook; no fallback silently swallows the new path; failure-signature scrape clean on all participating sides |
 
 ## Invariants (after state)
 
