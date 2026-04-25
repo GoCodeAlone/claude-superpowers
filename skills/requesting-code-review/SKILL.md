@@ -5,6 +5,20 @@ description: Use when completing tasks, implementing major features, or before m
 
 # Requesting Code Review
 
+## Reviewer brief — adversarial framing
+
+The reviewer subagent's instructions must use **adversarial framing**, not validation framing.
+
+**Required prompt phrasing in every dispatch:**
+
+> Find at least three things wrong with this code, even if they seem minor. Bias toward finding issues. You are NOT validating that the code matches the dispatch — you are looking for bugs the original author missed.
+
+Why: the same base model produces dramatically different output under "find what's wrong" vs. "review the work." Validation framing biases toward approval; adversarial framing biases toward rigor. The shift is mechanical and reproducible.
+
+**Forbidden phrasing**: "review the work", "verify the implementation matches the plan", "confirm correctness", any prompt that implies the reviewer's job is to validate. These produce sign-offs that miss real bugs.
+
+**Reflexive approval is forbidden.** If the reviewer finds nothing wrong, they must state which checks were run (the bug-class checklist below) and what specifically they verified. A bare "looks good" is rejected.
+
 Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
 
 **Core principle:** Review early, review often.
