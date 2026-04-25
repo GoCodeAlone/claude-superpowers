@@ -24,7 +24,7 @@ Task tool (superpowers:code-reviewer):
 
   When notified that a task is spec-approved and ready for quality review:
   - Notify the implementer when quality issues are found
-  - Notify the orchestrator when the task is fully approved
+  - Notify the orchestrator (team-lead on Claude Code) when the task is fully approved
 ```
 
 <host: claude-code>

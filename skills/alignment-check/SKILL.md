@@ -25,55 +25,53 @@ Invoked automatically by `writing-plans` in autonomous mode. Can also be invoked
 
 ## Dispatching the Alignment Agent
 
-<host: claude-code>
+Dispatch a `balanced`-tier subagent to verify alignment. The subagent reads both documents and produces an Alignment Report:
 
-Dispatch a `balanced`-tier agent to perform the comparison:
+**Input:**
+- Design document: `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- Implementation plan: `docs/plans/YYYY-MM-DD-<feature>.md`
+
+**Forward trace (design → plan):**
+For each requirement in the design:
+- Find the plan task(s) that implement it
+- If no task covers it: flag as MISSING
+
+**Reverse trace (plan → design):**
+For each task in the plan:
+- Find the design requirement it satisfies
+- If no requirement justifies it: flag as SCOPE CREEP
+
+**Report format:**
+
+### Alignment Report
+
+**Status:** PASS | FAIL
+
+**Coverage:**
+| Design Requirement | Plan Task(s) | Status |
+|---|---|---|
+| [requirement] | Task N | ✅ Covered |
+| [requirement] | — | ❌ MISSING |
+
+**Scope Check:**
+| Plan Task | Design Requirement | Status |
+|---|---|---|
+| Task N | [requirement] | ✅ Justified |
+| Task N | — | ⚠️ SCOPE CREEP |
+
+**Drift Items:** [list specific items to fix]
+
+<host: claude-code>
+Dispatch using the Agent tool:
 
 ```
 Agent tool (general-purpose, model: balanced):
   description: "Check alignment: design vs plan"
   prompt: |
     You are verifying that an implementation plan aligns with its design document.
-
-    ## Design Document
-    [Read: docs/plans/YYYY-MM-DD-<topic>-design.md]
-
-    ## Implementation Plan
-    [Read: docs/plans/YYYY-MM-DD-<feature>.md]
-
-    ## Your Job
-
-    **Forward trace (design → plan):**
-    For each requirement in the design:
-    - Find the plan task(s) that implement it
-    - If no task covers it: flag as MISSING
-
-    **Reverse trace (plan → design):**
-    For each task in the plan:
-    - Find the design requirement it satisfies
-    - If no requirement justifies it: flag as SCOPE CREEP
-
-    **Report format:**
-
-    ### Alignment Report
-
-    **Status:** PASS | FAIL
-
-    **Coverage:**
-    | Design Requirement | Plan Task(s) | Status |
-    |---|---|---|
-    | [requirement] | Task N | ✅ Covered |
-    | [requirement] | — | ❌ MISSING |
-
-    **Scope Check:**
-    | Plan Task | Design Requirement | Status |
-    |---|---|---|
-    | Task N | [requirement] | ✅ Justified |
-    | Task N | — | ⚠️ SCOPE CREEP |
-
-    **Drift Items:** [list specific items to fix]
+    Read docs/plans/YYYY-MM-DD-<topic>-design.md and docs/plans/YYYY-MM-DD-<feature>.md,
+    then produce an Alignment Report following the instructions in the alignment-check skill.
 ```
-
 </host>
 
 ## On FAIL
