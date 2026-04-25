@@ -49,18 +49,20 @@ The autonomous flag propagates through the entire pipeline: writing-plans → al
 
 ## Design-only mode
 
-Design-only mode is active if ANY of: `--design-only` flag or propagation from brainstorming. If signals conflict, the most-restrictive wins (i.e., design-only takes effect). Default is execution dispatched.
+Design-only mode is active if ANY of: `--design-only` flag or propagation from brainstorming. If signals conflict, the most-restrictive wins (i.e., design-only takes effect).
+
+This section applies to the autonomous brainstorming → writing-plans → alignment-check → execution pipeline. In that pipeline, the default (no flag) is to dispatch execution after alignment passes. For direct/manual invocations of `writing-plans`, execution is never auto-dispatched regardless — the user chooses (see Manual Mode below). In other words, `--design-only` suppresses the automatic execution handoff in autonomous runs; it does not change manual invocation behavior.
 
 Do not add YAML frontmatter to signal design-only mode. Saved plan documents must keep the standard format so downstream skills can parse them reliably, with `# [Feature Name] Implementation Plan` as the first line of the file.
 
 **Behavior in design-only mode:**
 
-1. Save the plan to `docs/plans/<filename>.md` as normal.
+1. Save the plan to `docs/plans/YYYY-MM-DD-<feature-name>.md` as normal.
 2. Commit the plan as normal.
 3. Invoke `superpowers:alignment-check` as normal.
 4. **On alignment PASS: STOP.** Do NOT invoke `superpowers:subagent-driven-development`.
-5. **On alignment FAIL:** revise the plan based on drift items, re-check (max 2 cycles) — same as default Autonomous Mode. After revision, if PASS, still STOP (do not proceed to execution).
-6. **On persistent FAIL after the max 2 cycles:** escalate to the user with an unresolved drift summary — same as Autonomous Mode step 5. Do NOT invoke `superpowers:subagent-driven-development` or dispatch any execution.
+5. **On alignment FAIL:** revise the plan based on drift items and run `superpowers:alignment-check` again, with a maximum of 2 alignment-check cycles total. If a revised plan passes alignment, still STOP and do not proceed to execution.
+6. **On persistent FAIL after those 2 cycles:** escalate to the user with an unresolved drift summary. Do NOT invoke `superpowers:subagent-driven-development` or dispatch any execution.
 7. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `superpowers:subagent-driven-development` directly once alignment issues are resolved.
 
 **When to use:**
