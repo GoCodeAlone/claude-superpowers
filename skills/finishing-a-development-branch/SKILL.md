@@ -95,7 +95,7 @@ Stop. Don't proceed to Step 2.
 
 - Build configuration (Dockerfile, build script, CI build steps)
 - Deployment configuration (compose, Kubernetes manifests, deployment workflows)
-- Version pins on runtime, libraries, or build/launch-affecting tooling — excludes dev-only tooling such as linters and formatters
+- Version pins on runtime, libraries, or build/launch-affecting tooling (images, CI build tools, language runtimes) — excludes dev-only tooling such as linters and formatters
 - Application-startup configuration (config files read at boot)
 - Database migrations
 - Plugin / extension loading paths
@@ -120,6 +120,8 @@ Action:
    (4 minor versions ahead). Compatibility verified via: <link or note>.
    ```
 4. Resolve before merging — bump the lagging pin, OR state explicitly why the skew is intentional and safe.
+
+If NOT triggered: skip this step and continue to Step 2.
 
 ### Step 2: Determine Base Branch
 

@@ -19,7 +19,7 @@ Triggered by changes to any of:
 
 - Build configuration (Dockerfile, build script, CI build steps)
 - Deployment configuration (compose, Kubernetes manifests, deployment workflows)
-- Version pins on runtime, libraries, or build/launch-affecting tooling (images, CI build tools, runtime runtimes) — excludes dev-only tooling such as linters and formatters
+- Version pins on runtime, libraries, or build/launch-affecting tooling (images, CI build tools, language runtimes) — excludes dev-only tooling such as linters and formatters
 - Application-startup configuration (config files read at boot)
 - Database migrations
 - Plugin / extension loading paths
