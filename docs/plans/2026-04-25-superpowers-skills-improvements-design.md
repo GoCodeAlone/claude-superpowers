@@ -329,4 +329,4 @@ The implementer will create these fixtures as part of the work and document the 
 
 ## Approval
 
-Approved by user via the autonomous-mode brainstorm dispatch with full pipeline (brainstorm → writing-plans → alignment-check → subagent-driven-development → finishing → pr-monitoring). Implementer: `impl-migrations` from the existing platform-maturity-stage2 team. PR(s) targeted at `GoCodeAlone/claude-superpowers` main with newly-active branch protection.
+Approved by user via the autonomous-mode brainstorm dispatch with full pipeline (brainstorm → writing-plans → alignment-check → subagent-driven-development → finishing → pr-monitoring). Implementer: per the orchestrator's team configuration. PR(s) targeted at `GoCodeAlone/claude-superpowers` main with newly-active branch protection.

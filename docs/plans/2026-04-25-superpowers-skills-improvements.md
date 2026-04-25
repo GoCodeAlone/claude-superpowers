@@ -8,7 +8,7 @@
 
 **Tech Stack:** Markdown skill files; bash for fixture commands; Graphviz/dot for any flow diagrams; the repo's existing skill-validation conventions.
 
-**Sanitization:** Public skill set — every example, fixture, and comment must be generic. No project, company, technology, or incident references.
+**Sanitization:** Public skill set — every example, fixture, and comment must be generic. No specific project, company, version, or incident references. Generic technology terms used as examples (e.g. Go, Markdown, bash) are fine.
 
 **Design doc:** `docs/plans/2026-04-25-superpowers-skills-improvements-design.md` (commit 6bb1833)
 
@@ -26,7 +26,7 @@ Five PRs, sequenced for dependency + review ergonomics:
 | 4 | `writing-plans` additions + `brainstorming` `--design-only` flag + fixtures | The flag propagates between them |
 | 5 | `subagent-driven-development` DRY refactor + fixture | Independent; lands last to dogfood the earlier work |
 
-Each PR independently goes through finishing-a-development-branch + pr-monitoring. Implementer is impl-migrations from the existing platform-maturity-stage2 team.
+Each PR independently goes through finishing-a-development-branch + pr-monitoring. Implementer: per the orchestrator's team configuration.
 
 ---
 

@@ -7,7 +7,7 @@ No MISSING items. No SCOPE CREEP.
 
 ## Bug-class scan
 
-**Symmetry violations** — FINDING. `Inspect` omits `"kind": d.kind`. Both `Create` (line 11) and `Delete` (line 17) set it as the first arg in their maps.
+**Symmetry violations** — FINDING. `Inspect` omits `"kind": d.kind`. Both `Create` (line 11) and `Delete` (line 27) set it as the first arg in their maps.
 
 **Error swallowing** — none observed in the diff.
 
@@ -30,8 +30,8 @@ No MISSING items. No SCOPE CREEP.
 ### Finding 1 — Inspect omits `kind` arg present in all sibling methods
 - **Severity**: Important
 - **Bug class**: Symmetry violations
-- **Location**: `lib/dispatcher.go:13`
-- **What's wrong**: The new `Inspect` method's args map omits `"kind": d.kind`. Sibling methods `Create` (line 11) and `Delete` (line 17) both set it as the first key.
+- **Location**: `lib/dispatcher.go:17`
+- **What's wrong**: The new `Inspect` method's args map omits `"kind": d.kind`. Sibling methods `Create` (line 11) and `Delete` (line 27) both set it as the first key.
 - **Why it matters**: Receivers downstream rely on `kind` to dispatch correctly. Calling `Inspect` will silently target the wrong dispatch path or return `not found` because the receiver cannot disambiguate the request type.
 - **Suggested fix**: Add `"kind": d.kind,` as the first key in the args map, matching siblings.
 

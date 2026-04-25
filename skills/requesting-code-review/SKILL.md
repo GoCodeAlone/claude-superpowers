@@ -47,14 +47,14 @@ The reviewer must explicitly scan for each of these bug classes on every diff. T
 | Class | Definition |
 |---|---|
 | **Symmetry violations** | Sibling methods in the same struct/class/handler family follow a convention; one method drifts from it. The new method omits a key the others set, or wraps an error the others don't, or returns a shape the others don't. |
-| **Error swallowing** | `_, err := ...; result` patterns, `_ = err`, `if err != nil { log(err) }` followed by silent recovery, errors caught and not propagated when they should be. |
+| **Error swallowing** | `_, err := f(); _ = err` patterns (error silently discarded), `if err != nil { log(err) }` followed by silent recovery, errors caught and not propagated when they should be. |
 | **Comment-vs-code drift** | Comments describing behavior the code no longer has; comments naming files, functions, or variables that have been renamed. |
 | **Test-name-vs-body mismatch** | A test named `..._HandlesNotFound` that actually simulates a list-API error rather than the not-found path. The name and the body disagree. |
 | **Missing edge cases** | Tests covering only the happy path. No empty/nil/malformed inputs. No network-error or timeout paths. No boundary values. |
 | **Concurrency bugs** | Goroutines/threads without sync, race conditions, channel-close patterns, missing locks, double-unlock. |
 | **Type-coercion silent failures** | Encode/decode where `int → float64` is silently lossy, where `[]any → []string` is rejected without a clear error, where `nil` and zero-value diverge. |
 | **Dead/unreachable code** | Branches no test exercises and no caller can reach. Either delete or cover. |
-| **Scope-vs-dispatch drift** | The implementation ships materially MORE or LESS than the dispatch asked for. Both directions are findings. (See the dedicated gate below.) |
+| **Scope-vs-dispatch drift** | The implementation ships materially MORE or LESS than the dispatch asked for. Both directions are findings. (See the dedicated gate above.) |
 
 For each finding, the reviewer cites the bug class explicitly. This makes patterns visible across reviews and lets the team identify recurring weaknesses.
 
@@ -95,7 +95,7 @@ Loop:
 
 Maximum loops: 5 per PR. If the reviewer still finds Critical/Important issues after round 5, the verdict becomes REVERT-AND-REWRITE; the implementer takes a different approach.
 
-**The loop runs even if intermediate rounds had findings of Minor severity only.** The bar is "find what's wrong" — Minor findings don't trigger automatic re-review, but the human or orchestrator inspects them before merge.
+**Minor findings do not auto-trigger a new review round.** The loop re-runs only when there are unresolved Critical or Important findings. When a round produces only Minor/Nit findings, the verdict is SHIP-IT (or FIX-FORWARD) and the human or orchestrator inspects the Minor findings before merge — they do not block it, but they should be acknowledged.
 
 ## Verdict vocabulary
 
@@ -135,6 +135,8 @@ When dispatching a code-review subagent, use this brief verbatim:
 ```
 You are a code reviewer with adversarial framing. Find at least three things
 wrong with this code, even if they seem minor. Bias toward finding issues.
+You are NOT validating that the code matches the dispatch — you are looking
+for bugs the original author missed.
 
 ## Diff under review
 <diff>
@@ -154,9 +156,15 @@ Run these checks IN ORDER:
 3. End with one verdict: SHIP-IT | FIX-FORWARD | REQUEST-CHANGES |
    REVERT-AND-REWRITE, plus a one-sentence justification.
 
-For each finding, use the per-finding format:
-- Severity, Bug class, Location (file:line), What's wrong, Why it matters,
-  Suggested fix.
+For each finding, use this exact format:
+
+### Finding N — <one-line summary>
+- **Severity**: Critical | Important | Minor | Nit
+- **Bug class**: <from the checklist or "other (describe)">
+- **Location**: `path/to/file.ext:line`
+- **What's wrong**: <one sentence>
+- **Why it matters**: <one sentence>
+- **Suggested fix**: <one sentence or short snippet>
 
 Reflexive approval is forbidden. If you find nothing wrong, state which
 checks were run.
@@ -191,9 +199,21 @@ You: Let me request code review before proceeding.
 BASE_SHA=$(git rev-parse HEAD~1)  # or: git log --oneline | grep "Task 1" | head -1 | awk '{print $1}'
 HEAD_SHA=$(git rev-parse HEAD)
 
-[Dispatch superpowers:code-reviewer subagent with the review-request template above]
-  <diff>: output of git diff $BASE_SHA..$HEAD_SHA
-  <dispatch text>: "Add verifyIndex() and repairIndex() with 4 issue types (Task 2)"
+[Dispatch superpowers:code-reviewer subagent — brief filled in verbatim from the review-request template:]
+
+You are a code reviewer with adversarial framing. Find at least three things
+wrong with this code, even if they seem minor. Bias toward finding issues.
+You are NOT validating that the code matches the dispatch — you are looking
+for bugs the original author missed.
+
+## Diff under review
+<output of git diff $BASE_SHA..$HEAD_SHA>
+
+## Original dispatch (what the implementer was asked to do)
+Add verifyIndex() and repairIndex() with 4 issue types (Task 2)
+
+## Required output
+[... per review-request template ...]
 
 [Subagent returns]:
 
@@ -217,9 +237,8 @@ Verdict: REQUEST-CHANGES — one Important finding (missing progress indicators)
 
 You: [Fix progress indicators, extract constant, push new commit]
 
-[Dispatch superpowers:code-reviewer subagent — round 2, full diff re-read]
-  <diff>: output of git diff $BASE_SHA..$HEAD_SHA  (same range, now includes fix commits)
-  <dispatch text>: "Add verifyIndex() and repairIndex() with 4 issue types (Task 2)"
+[Dispatch superpowers:code-reviewer subagent — round 2, full diff re-read, same verbatim brief]
+  (same diff range $BASE_SHA..$HEAD_SHA — now includes the fix commits)
 
 [Subagent returns]:
 
