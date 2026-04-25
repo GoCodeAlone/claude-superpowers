@@ -215,7 +215,19 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 Verdict: REQUEST-CHANGES — one Important finding (missing progress indicators); fix before merge.
 
-You: [Fix progress indicators, extract constant]
+You: [Fix progress indicators, extract constant, push new commit]
+
+[Dispatch superpowers:code-reviewer subagent — round 2, full diff re-read]
+  <diff>: output of git diff $BASE_SHA..$HEAD_SHA  (same range, now includes fix commits)
+  <dispatch text>: "Add verifyIndex() and repairIndex() with 4 issue types (Task 2)"
+
+[Subagent returns]:
+
+Scope-vs-dispatch gate: PASS. Bug-class scan: no Critical or Important findings.
+Finding 2 (Minor) from round 1 addressed — constant extracted.
+
+Verdict: SHIP-IT — no Critical or Important findings remain.
+
 [Continue to Task 3]
 ```
 
