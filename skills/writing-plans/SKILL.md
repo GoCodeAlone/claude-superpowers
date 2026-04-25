@@ -49,13 +49,16 @@ The autonomous flag propagates through the entire pipeline: writing-plans → al
 
 ## Design-only mode
 
-Design-only mode may be enabled by any of these signals: passing `--design-only`, including a YAML frontmatter block above the H1 in the plan, or propagating the same flag from the brainstorm that called writing-plans. If multiple signals are present, treat them as the same request; they do not change behavior based on source.
+Design-only mode is active if ANY of: `--design-only` flag, plan YAML frontmatter `design-only: true`, or propagation from brainstorming. If signals conflict, the most-restrictive wins (i.e., design-only takes effect). Default is execution dispatched.
 
 ```yaml
 ---
 design-only: true
 ---
+# [Feature Name] Implementation Plan
 ```
+
+Frontmatter (when present) appears BEFORE the `# [Feature Name] Implementation Plan` H1 — the H1 is still required as the first non-frontmatter line.
 
 **Behavior in design-only mode:**
 
