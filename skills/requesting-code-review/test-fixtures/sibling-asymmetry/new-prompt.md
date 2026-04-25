@@ -49,9 +49,15 @@ Run these checks IN ORDER:
 3. End with one verdict: SHIP-IT | FIX-FORWARD | REQUEST-CHANGES |
    REVERT-AND-REWRITE, plus a one-sentence justification.
 
-For each finding, use the per-finding format:
-- Severity, Bug class, Location (file:line), What's wrong, Why it matters,
-  Suggested fix.
+For each finding, use this exact format:
+
+### Finding N — <one-line summary>
+- **Severity**: Critical | Important | Minor | Nit
+- **Bug class**: <from the checklist or "other (describe)">
+- **Location**: `path/to/file.ext:line`
+- **What's wrong**: <one sentence>
+- **Why it matters**: <one sentence>
+- **Suggested fix**: <one sentence or short snippet>
 
 Reflexive approval is forbidden. If you find nothing wrong, state which
 checks were run.
