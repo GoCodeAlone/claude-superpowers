@@ -182,6 +182,35 @@ Confirm:
 
 **Other tests fail?** Fix now.
 
+### Verify Regression Invariant — Prove the Test Catches the Bug
+
+After GREEN, before REFACTOR: prove the test actually catches the bug it gates.
+
+1. **Revert** the production code change (just the fix — leave the test in place).
+2. **Run the new test.**
+   **Must FAIL** with a clear message that ties to the bug.
+   If it passes with the fix reverted, the test doesn't exercise the fix path —
+   either the test is structured wrong or the fix doesn't address the root cause.
+   Stop and rethink.
+3. **Restore** the fix.
+4. **Run the test again.**
+   **Must PASS.**
+5. **Document the proof in the PR body.** Paste the relevant lines:
+
+   ```
+   With fix reverted:
+   $ <test run command>
+     FAIL — <message that names the bug>
+
+   With fix restored:
+   $ <test run command>
+     PASS
+   ```
+
+**Why:** a passing test proves nothing without this check. The test might pass for the wrong reason — it uses the same broken code path, mocks the bug away, or tests a tangentially-correct property. The revert-and-restore proof is the only way to know the test would have caught the bug if it had been shipped before the fix.
+
+**Iron Law (extension):** No claim of "test catches regression" without revert-and-restore proof in the PR body.
+
 ### REFACTOR - Clean Up
 
 After green only:
@@ -252,6 +281,55 @@ Tests-after are biased by your implementation. You test what you built, not what
 Tests-first force edge case discovery before implementing. Tests-after verify you remembered everything (you didn't).
 
 30 minutes of tests after ≠ TDD. You get coverage, lose proof tests work.
+
+## When the Bug Is a Class Invariant Violation
+
+A common pattern: one method of a sibling-method group violates a convention the rest of the group follows. The fix is local; the bug is structural.
+
+**Heuristic — does this apply?**
+
+- Is there a sibling-method group? (Several methods on the same struct, the same handler family, the same RPC service, the same hook table.)
+- Does the bug stem from the buggy method failing to follow a convention the rest of the group already follows?
+- Could a future method drift the same way?
+
+If two or more are yes: the regression test must cover ALL sibling methods — not just the buggy one. Pattern: table-driven test with one entry per sibling method, each asserting the invariant.
+
+**Why:** fixing only the buggy method leaves the bug class open. The next method that drifts ships the same bug. The test must gate the class, not the instance.
+
+**Concrete example (generic):**
+
+A `Dispatcher` struct has methods `Create`, `Read`, `Update`, `Delete`, `Inspect`. Each calls `client.Send(...)` with an args map that must include `"kind": d.kind`. `Inspect` is new and omits `kind`. The fix is one line — but the regression test should be:
+
+```go
+// Regression gate for the class invariant: every Dispatcher method must
+// include "kind" in its Send args. New methods MUST include the same arg.
+func TestDispatcher_AllMethods_IncludeKind(t *testing.T) {
+    cases := []struct {
+        name string
+        call func(d *Dispatcher) error
+    }{
+        {"Create",  func(d *Dispatcher) error { return d.Create(req) }},
+        {"Read",    func(d *Dispatcher) error { return d.Read(req) }},
+        {"Update",  func(d *Dispatcher) error { return d.Update(req) }},
+        {"Delete",  func(d *Dispatcher) error { return d.Delete(req) }},
+        {"Inspect", func(d *Dispatcher) error { return d.Inspect(req) }},
+    }
+    for _, tc := range cases {
+        t.Run(tc.name, func(t *testing.T) {
+            spy := &spyClient{}
+            d := &Dispatcher{client: spy, kind: "widget"}
+            _ = tc.call(d)
+            if spy.lastArgs["kind"] != "widget" {
+                t.Errorf("%s: missing or wrong kind in args", tc.name)
+            }
+        })
+    }
+}
+```
+
+The next method that drifts the same way fails this test on first commit.
+
+**Regression Invariant check for class-invariant tests:** after GREEN, apply the revert-and-restore proof to each table row — particularly the previously-broken method and at least one currently-correct sibling. Both must fail when the class invariant is broken and pass when it is restored.
 
 ## Common Rationalizations
 
