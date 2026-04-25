@@ -90,7 +90,7 @@ When writing a plan task, the verification step must match the change class. A g
 
 These examples are illustrative minimums; per-task `Expected:` fields must be literal values the check can assert against.
 
-Every plan task must include the verification step appropriate to its change class, as defined in the table above. For tasks whose `finishing-a-development-branch` Step 1b trigger conditions are met, include that runtime-launch-validation step in the TDD breakdown as well; otherwise, use the class-appropriate verification without implying Step 1b is required.
+Every plan task must include the verification step appropriate to its change class, as defined in the table above. For tasks whose `finishing-a-development-branch` Step 1b trigger conditions are met (build configuration, deployment configuration, version pins on runtime components, startup configuration, migrations, plugin loading paths), include the runtime-launch-validation step in the TDD breakdown as well. Hook/trigger/event-handler changes are NOT in the Step 1b trigger list — they use only the class-appropriate verification from the table.
 
 The plan author writes the expected output literally — not "passes tests" but "logs `engine ready` within 10 seconds and `/healthz` returns 200".
 
