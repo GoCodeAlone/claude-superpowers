@@ -19,10 +19,10 @@ Load plan, review critically, execute tasks in batches, report for review betwee
 1. Read plan file
 2. Review critically - identify any questions or concerns about the plan
 3. If concerns: Raise them with your human partner before starting
-4. If no concerns: proceed to Step 2
+4. If no concerns: create one task entry per plan task in your host's task system, then proceed to Step 2
 
 <host: claude-code>
-Create a TodoWrite entry per plan task before starting.
+Use TodoWrite — one entry per plan task.
 </host>
 
 ### Step 2: Execute Batch
