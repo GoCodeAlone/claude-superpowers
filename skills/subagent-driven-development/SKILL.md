@@ -39,9 +39,11 @@ instead of a task queue. See [Sequential Mode](#sequential-mode).
 
 ---
 
-<host: claude-code>
-
 ## Agent Teams Mode
+
+Agent Teams mode is available only in Claude Code. On other hosts, use [Sequential Mode](#sequential-mode) instead.
+
+<host: claude-code>
 
 ### Team Structure
 
