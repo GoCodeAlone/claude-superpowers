@@ -66,7 +66,7 @@ digraph tdd_cycle {
     verify_invariant -> refactor [label="proven"];
     verify_invariant -> red [label="test\ndoesn't\ncatch bug"];
     refactor -> verify_green [label="stay\ngreen"];
-    verify_invariant -> next;
+    verify_green -> next;
     next -> red;
 }
 ```
@@ -192,9 +192,11 @@ After GREEN, before REFACTOR: prove the test actually catches the bug it gates.
 1. **Revert** the production code change (just the fix — leave the test in place).
 2. **Run the new test.**
    **Must FAIL** with a clear message that ties to the bug.
-   If it passes with the fix reverted, the test doesn't exercise the fix path —
-   either the test is structured wrong or the fix doesn't address the root cause.
-   Stop and rethink.
+   If it passes with the fix reverted, the test doesn't exercise the fix path.
+   Two possible causes:
+   - **Test is structured wrong** → go back to RED, rewrite the test.
+   - **Fix doesn't address the root cause** → go back to GREEN, rethink the fix.
+   Stop and rethink before proceeding.
 3. **Restore** the fix.
 4. **Run the test again.**
    **Must PASS.**
@@ -323,7 +325,7 @@ func TestDispatcher_AllMethods_IncludeKind(t *testing.T) {
             spy := &spyClient{} // spyClient is a test double; implement lastArgs capture for your client type
             d := &Dispatcher{client: spy, kind: "widget"}
             if err := tc.call(d); err != nil {
-                t.Fatalf("%s: unexpected error: %v", tc.name, err)
+                t.Fatalf("unexpected error: %v", err)
             }
             if spy.lastArgs["kind"] != "widget" {
                 t.Errorf("%s: missing or wrong kind in args", tc.name)
