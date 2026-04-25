@@ -64,9 +64,9 @@ digraph tdd_cycle {
     verify_green -> verify_invariant [label="yes"];
     verify_green -> green [label="no"];
     verify_invariant -> refactor [label="proven"];
-    verify_invariant -> green [label="test\ndoesn't\ncatch bug"];
+    verify_invariant -> red [label="test\ndoesn't\ncatch bug"];
     refactor -> verify_green [label="stay\ngreen"];
-    verify_green -> next;
+    verify_invariant -> next;
     next -> red;
 }
 ```
@@ -320,7 +320,7 @@ func TestDispatcher_AllMethods_IncludeKind(t *testing.T) {
     }
     for _, tc := range cases {
         t.Run(tc.name, func(t *testing.T) {
-            spy := &spyClient{}
+            spy := &spyClient{} // spyClient is a test double; implement lastArgs capture for your client type
             d := &Dispatcher{client: spy, kind: "widget"}
             if err := tc.call(d); err != nil {
                 t.Fatalf("%s: unexpected error: %v", tc.name, err)
