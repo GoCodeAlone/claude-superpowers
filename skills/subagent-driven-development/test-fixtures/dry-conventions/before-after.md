@@ -42,5 +42,5 @@ Violation = the DRY refactor has drifted back toward inline.
    found, document every bug-class check run") is preserved verbatim in
    `agents/team-conventions.md` — not silently dropped.
 
-Verify with: `grep -rn "checklist below\|see below\|inlined here\|Self-Review\b" skills/subagent-driven-development/ --include="*.md" --exclude-dir=test-fixtures`
+Verify with: `grep -rEn 'checklist below|see below|inlined here|Self-Review([[:space:][:punct:]]|$)' skills/subagent-driven-development/ --include="*.md" --exclude-dir=test-fixtures`
 Expected: 0 matches.

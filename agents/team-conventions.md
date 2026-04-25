@@ -52,5 +52,7 @@ them.
 - DRY: when re-stating a convention, prefer "per `<skill>`" over
   inlining the rule.
 - DM team-lead when blocked, when CI breaks, when ready for merge.
-- Sanitization: in public repos, no project / company / version /
-  incident references.
+- Sanitization: in public repos, no specific internal project /
+  company / product-version / incident references. Dependency,
+  runtime, and tooling version numbers are allowed when needed for
+  accurate technical guidance.
