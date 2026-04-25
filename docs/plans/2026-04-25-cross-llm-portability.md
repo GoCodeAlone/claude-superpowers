@@ -86,7 +86,7 @@ The test is the script itself. Save as `tests/skill-content-grep.sh`:
 ```bash
 #!/usr/bin/env bash
 # tests/skill-content-grep.sh
-# Fails if forbidden Claude-only tokens appear in skills/ outside allowed contexts.
+# Fails if forbidden Claude-only tokens appear in skills/ or agents/ outside allowed contexts.
 
 set -euo pipefail
 
