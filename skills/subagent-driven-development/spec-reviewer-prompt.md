@@ -8,8 +8,8 @@ Use this template when dispatching a spec compliance reviewer subagent.
 **Agent Teams additions:** When using Agent Teams, also add to the prompt:
 - Wait for DMs from implementers saying a task is ready
 - DM code-reviewer when spec compliance passes
-- DM implementer when issues are found
-- Use TaskUpdate to mark "Review spec:" tasks as completed
+- DM the implementer who CURRENTLY OWNS the task (per `TaskList` `owner` field) when issues are found, not whoever sent the most recent DM
+- Use TaskUpdate to mark "Review spec:" tasks as completed (only the Review spec task; never the Implement task — code-reviewer marks that one)
 </host>
 
 ```

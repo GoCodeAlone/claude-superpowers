@@ -9,9 +9,9 @@ Use this template when dispatching a code quality reviewer subagent.
 <host: claude-code>
 **Agent Teams additions:** When using Agent Teams, also add to the prompt:
 - Wait for DMs from spec-reviewer saying a task is spec-approved
-- DM implementer when quality issues are found
+- DM the implementer who CURRENTLY OWNS the task (per `TaskList` `owner` field), not the implementer who wrote the original test fixture or whoever happened to be idle. The owner is the person responsible for fixing it.
 - DM the orchestrator (team-lead) when task is fully approved
-- Use TaskUpdate to mark "Review quality:" tasks as completed
+- After approving, **mark BOTH tasks completed**: the "Review quality: …" task AND the corresponding "Implement: …" task. Code-reviewer is the only role that flips the Implement task to completed; missing this leaves the team-lead with bookkeeping stragglers.
 </host>
 
 ```
@@ -66,6 +66,15 @@ Task tool (superpowers:code-reviewer):
      - Test-only deferral noted as "fix later in Task X" that is the third
        (or later) such deferral against the same module — call it out as
        cascade risk before it becomes a fix-cycle in a later task.
+     - **Vacuous assertion** — a test whose name promises behavior X but
+       whose body's assertion is tautologically true (e.g., `assert p < Floor || p > Ceiling`
+       on a value `0.135` that doesn't trigger either bound, so the OR is
+       always satisfied; or `assert err == nil || err != nil`). The function
+       under test may be correct, but the test doesn't prove it. A vacuously-passing
+       test is worse than no test — it gives false confidence. Promote to
+       Important and require the implementer to either rewrite the assertion
+       to actually exercise the named path, or rename the test to match what
+       it does.
 
   ## Output format
 
