@@ -325,7 +325,7 @@ The following questions were open at design time and have since been resolved:
 
 - **Grep-guard implementation.** Single-pass AWK script (`tests/skill-content-grep.sh`). AWK tracks line numbers while skipping exclusive `<host: claude-code>` blocks; grep runs per-token on the annotated output. Multi-host blocks such as `<host: codex, claude-code>` are NOT skipped — content there is shown to codex users and must not contain Claude-only tokens.
 
-- **Host-marker syntax.** `<host: claude-code>` … `</host>` (angle-bracket form). Rationale: visible in PR diffs unlike HTML-comment form; most markdown renderers treat unknown tags harmlessly.
+- **Host-marker syntax.** `<host: claude-code>` … `</host>` (angle-bracket form). Rationale: visible when reading the document, including in rendered Markdown — unlike HTML-comment form which renderers hide; most markdown renderers treat unknown tags harmlessly.
 
 - **OpenCode plugin tool-mapping.** Rewritten skills use `update_plan` in `<host: opencode>` blocks where they previously used `TodoWrite`. The `.opencode/INSTALL.md` mapping is the source of truth.
 

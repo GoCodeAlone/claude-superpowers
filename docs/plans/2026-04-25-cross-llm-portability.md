@@ -88,7 +88,7 @@ The test is the script itself. Save as `tests/skill-content-grep.sh`:
 # tests/skill-content-grep.sh
 # Fails if forbidden Claude-only tokens appear in skills/ outside allowed contexts.
 
-set -u
+set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
@@ -218,8 +218,8 @@ Skill bodies refer to roles, not brand names:
 
 When the model is following the skill on a specific host, it resolves the role
 through this table. Authors maintaining a skill must use role names, not
-`Sonnet` / `Opus` / `Haiku` / `gpt-5.x`. The grep guard || true
-(`tests/skill-content-grep.sh`) enforces this.
+`Sonnet` / `Opus` / `Haiku`. The grep guard
+(`tests/skill-content-grep.sh`) enforces the Claude-brand-name portion of this rule.
 
 ## Updating
 
@@ -400,7 +400,7 @@ Keep the prompt body itself unchanged — that text is host-neutral.
 **Step 3: Run the grep guard scoped to this file**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep alignment-check || true
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep alignment-check || true
 ```
 
 Expected: no output for `skills/alignment-check/SKILL.md` (no matches = PASS for this file; the overall script may still exit non-zero until other tasks land).
@@ -434,10 +434,10 @@ For tier names: replace `Sonnet` with `balanced`, `Opus` with `frontier`, `Haiku
 
 For tool names: wrap the surrounding paragraph in a `<host: claude-code>` block and add a corresponding `<host: codex, opencode, cursor>` block describing the equivalent in those hosts (typically: same workflow, host's native task tracker or in-prose checklist).
 
-**Step 3: Run the grep guard** || true
+**Step 3: Run the grep guard**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep pr-monitoring || true
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep pr-monitoring || true
 ```
 
 Expected: no matches.
@@ -511,7 +511,7 @@ Wrap the `AskUserQuestion` paragraph(s) in `<host: claude-code>`. Add `<host: co
 **Step 3: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep brainstorming || true
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep brainstorming || true
 ```
 
 Expect no matches.
@@ -620,7 +620,7 @@ For `implementer-prompt.md`, `spec-reviewer-prompt.md`, `code-quality-reviewer-p
 **Step 3: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep subagent-driven-development || true
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep subagent-driven-development || true
 ```
 
 Expect no matches outside `<host: claude-code>` blocks.
@@ -688,7 +688,7 @@ sequentially, or open multiple Cursor windows for true parallelism.
 **Step 2: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep dispatching-parallel-agents || true
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep dispatching-parallel-agents || true
 ```
 
 Expect no matches.
@@ -758,7 +758,7 @@ Replace each with the matching role name.
 **Step 3: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep writing-plans || true
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep writing-plans || true
 ```
 
 Expect no matches.
@@ -838,7 +838,7 @@ Restructure the surrounding paragraph so the rule "create one tracking entry per
 **Step 4: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep using-superpowers || true
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep using-superpowers || true
 ```
 
 Expect no matches.
@@ -882,7 +882,7 @@ Replace line 23 area with:
 **Step 2: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep executing-plans || true
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep executing-plans || true
 ```
 
 Expect no matches.
@@ -1146,7 +1146,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run grep guard || true
+      - name: Run grep guard
         run: ./tests/skill-content-grep.sh
 ```
 
