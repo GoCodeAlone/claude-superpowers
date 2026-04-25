@@ -6,7 +6,7 @@ Use this template when dispatching an implementer subagent.
 Task tool (general-purpose):
   description: "Implement Task N: [task name]"
   prompt: |
-    You are implementer-{N} on team {team-name}.
+    You are implementer-<N> on team <team-name>.
 
     Follow team conventions: see `agents/team-conventions.md` (committed in
     this repo) for the discipline rules every implementer applies (TDD with

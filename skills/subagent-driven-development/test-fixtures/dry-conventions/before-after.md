@@ -41,6 +41,8 @@ Violation = the DRY refactor has drifted back toward inline.
 5. The adversarial-framing exception clause ("if fewer than three issues
    found, document every bug-class check run") is preserved verbatim in
    `agents/team-conventions.md` — not silently dropped.
+6. No prompt template file uses curly-brace placeholders (`{X}` style).
+   All substitution tokens use angle-bracket style (`<X>`).
 
 Verify stale-inline language:
 `grep -rEn 'checklist below|see below|inlined here|Self-Review([[:space:][:punct:]]|$)' skills/subagent-driven-development/ --include="*.md" --exclude-dir=test-fixtures`
@@ -52,4 +54,8 @@ Expected: no MISSING lines.
 
 Verify no bare (prefix-less) requesting-code-review refs:
 `grep -rEn '[^/]requesting-code-review/' skills/subagent-driven-development/ agents/team-conventions.md --include="*.md" --exclude-dir=test-fixtures`
+Expected: 0 matches.
+
+Verify no curly-brace placeholders in prompt templates:
+`grep -rEn '\{[A-Za-z][A-Za-z0-9_-]*\}' skills/subagent-driven-development/ --include="*.md" --exclude-dir=test-fixtures`
 Expected: 0 matches.

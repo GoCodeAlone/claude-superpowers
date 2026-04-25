@@ -8,7 +8,7 @@ Use this template when dispatching a spec compliance reviewer subagent.
 Task tool (general-purpose):
   description: "Review spec compliance for Task N"
   prompt: |
-    You are spec-reviewer on team {team-name}.
+    You are spec-reviewer on team <team-name>.
 
     Follow team conventions: see `agents/team-conventions.md` (committed in
     this repo) for the scope-vs-dispatch compliance gate and review discipline

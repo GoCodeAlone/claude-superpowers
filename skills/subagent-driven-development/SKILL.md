@@ -28,7 +28,7 @@ Check availability:
 ```dot
 digraph team {
     rankdir=LR;
-    Lead [label="Team Lead (Opus)\nOrchestration only" shape=box style=filled fillcolor=lightyellow];
+    Lead [label="team-lead (Opus)\nOrchestration only" shape=box style=filled fillcolor=lightyellow];
     I1 [label="implementer-1\n(Sonnet)" shape=box];
     I2 [label="implementer-2\n(Sonnet)" shape=box];
     SR [label="spec-reviewer\n(Sonnet)" shape=box];
