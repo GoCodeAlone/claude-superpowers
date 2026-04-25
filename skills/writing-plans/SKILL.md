@@ -49,9 +49,15 @@ The autonomous flag propagates through the entire pipeline: writing-plans → al
 
 ## Design-only mode
 
-When the orchestrator wants the pipeline to halt after alignment-check (no execution dispatched), they pass `--design-only`, OR the plan includes a YAML frontmatter block `---\ndesign-only: true\n---` above the H1, OR the brainstorm that called writing-plans propagated the same flag.
+Design-only mode may be enabled by any of these signals: passing `--design-only`, including a YAML frontmatter block above the H1 in the plan, or propagating the same flag from the brainstorm that called writing-plans. If multiple signals are present, treat them as the same request; they do not change behavior based on source.
 
-**Behavior under `--design-only`:**
+```yaml
+---
+design-only: true
+---
+```
+
+**Behavior in design-only mode:**
 
 1. Save the plan to `docs/plans/<filename>.md` as normal.
 2. Commit the plan as normal.
@@ -79,7 +85,7 @@ When writing a plan task, the verification step must match the change class. A g
 | Schema migration | apply against ephemeral DB; down + re-apply | no orphaned tables; migration tool reports applied / schema version updated |
 | API endpoint | exercise endpoint with representative inputs (curl, gRPC, etc.) | HTTP 200 + expected JSON body |
 | Build pipeline / Dockerfile | build artifact + launch + healthcheck (see `runtime-launch-validation`) | transcript captured; exit 0 |
-| Version pin update | run version-skew audit + relaunch artifact | transcript captured; audit clean |
+| Version pin update | run version-skew audit (see `finishing-a-development-branch` Step 1c) + relaunch artifact | transcript captured; audit clean |
 | CLI command | `cmd --help` + representative invocation | help text correct; exit 0 |
 | UI component | render in browser/dev server | screenshot or visual confirmation |
 | Plugin / extension | load into host + exercise representative call | exit 0; representative call returns expected value |
