@@ -104,6 +104,10 @@ Agent tool (general-purpose, model: balanced):
 ```
 </host>
 
+<host: codex, opencode, cursor>
+Run the alignment check inline: read both documents, perform the forward and reverse traces using the Comparison Procedure above, and produce the Alignment Report.
+</host>
+
 ## On FAIL
 
 Feed drift items back to `writing-plans` for revision:
