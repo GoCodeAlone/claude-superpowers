@@ -42,5 +42,14 @@ Violation = the DRY refactor has drifted back toward inline.
    found, document every bug-class check run") is preserved verbatim in
    `agents/team-conventions.md` — not silently dropped.
 
-Verify with: `grep -rEn 'checklist below|see below|inlined here|Self-Review([[:space:][:punct:]]|$)' skills/subagent-driven-development/ --include="*.md" --exclude-dir=test-fixtures`
+Verify stale-inline language:
+`grep -rEn 'checklist below|see below|inlined here|Self-Review([[:space:][:punct:]]|$)' skills/subagent-driven-development/ --include="*.md" --exclude-dir=test-fixtures`
+Expected: 0 matches.
+
+Verify all skill file references resolve (no dead paths):
+`grep -rEoh 'skills/[A-Za-z0-9._/-]+\.md' skills/subagent-driven-development/ agents/team-conventions.md --include="*.md" | sort -u | while read f; do [ -f "$f" ] || echo "MISSING: $f"; done`
+Expected: no MISSING lines.
+
+Verify no bare (prefix-less) requesting-code-review refs:
+`grep -rEn '[^/]requesting-code-review/' skills/subagent-driven-development/ agents/team-conventions.md --include="*.md" --exclude-dir=test-fixtures`
 Expected: 0 matches.
