@@ -77,6 +77,19 @@ digraph brainstorming {
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
 
+## Design-only mode
+
+When the user wants design exploration without execution, they pass `--design-only` to brainstorming.
+
+**Behavior under `--design-only`:**
+
+1. Run the full brainstorming flow (explore context → questions → approaches → design → write design doc → commit).
+2. When invoking writing-plans, propagate the `--design-only` flag.
+3. writing-plans honors the flag: alignment-check PASS → STOP (no execution dispatched). On alignment FAIL, writing-plans revises and re-checks per its normal FAIL handling, then stops — still no execution dispatched. On persistent FAIL (after max 2 revision cycles), escalates to user with unresolved drift summary — no execution dispatched regardless.
+4. The pipeline ends with a committed design doc + plan in `docs/plans/`.
+
+**Default (no flag):** brainstorming → writing-plans → alignment-check → subagent-driven-development → … (autonomous handoff to execution).
+
 ## After the Design
 
 **Documentation:**

@@ -40,12 +40,59 @@ When Claude's Plan Mode is not available, use the full planning process describe
 When invoked from brainstorming with autonomous context (design already approved):
 
 1. **Skip user plan review** — write the plan directly without presenting it for approval
-2. **Invoke alignment-check** — dispatch the alignment verification agent
-3. **On alignment PASS** — invoke subagent-driven-development to begin execution
+2. **Invoke `superpowers:alignment-check`** — dispatch the alignment verification agent
+3. **On alignment PASS** — invoke `superpowers:subagent-driven-development` to begin execution
 4. **On alignment FAIL** — revise the plan based on drift items, re-check (max 2 cycles)
 5. **On persistent FAIL** — escalate to user with unresolved drift summary
 
 The autonomous flag propagates through the entire pipeline: writing-plans → alignment-check → execution → PR creation → PR monitoring.
+
+## Design-only mode
+
+Design-only mode is active if ANY of: `--design-only` flag or propagation from brainstorming. If signals conflict, the most-restrictive wins (i.e., design-only takes effect). Default is execution dispatched.
+
+Do not add YAML frontmatter to signal design-only mode. Saved plan documents must keep the standard format so downstream skills can parse them reliably, with `# [Feature Name] Implementation Plan` as the first line of the file.
+
+**Behavior in design-only mode:**
+
+1. Save the plan to `docs/plans/<filename>.md` as normal.
+2. Commit the plan as normal.
+3. Invoke `superpowers:alignment-check` as normal.
+4. **On alignment PASS: STOP.** Do NOT invoke `superpowers:subagent-driven-development`.
+5. **On alignment FAIL:** revise the plan based on drift items, re-check (max 2 cycles) — same as default Autonomous Mode. After revision, if PASS, still STOP (do not proceed to execution).
+6. **On persistent FAIL after the max 2 cycles:** escalate to the user with an unresolved drift summary — same as Autonomous Mode step 5. Do NOT invoke `superpowers:subagent-driven-development` or dispatch any execution.
+7. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `superpowers:subagent-driven-development` directly once alignment issues are resolved.
+
+**When to use:**
+
+- Design exploration ahead of available implementation capacity.
+- Cross-cutting designs that affect multiple workstreams; lock the design in before any one workstream starts.
+- Designs with prerequisites in-flight elsewhere; queue the plan now, execute when prerequisites land.
+
+**Default (no flag):** `superpowers:alignment-check` PASS → invoke `superpowers:subagent-driven-development`. Same as before.
+
+## Verification per change class
+
+When writing a plan task, the verification step must match the change class. A green unit-test run is sufficient ONLY for internal-logic refactors. Other classes need stronger evidence.
+
+| Change class | Verification | Expected output |
+|---|---|---|
+| Internal logic refactor | unit tests | all green |
+| Schema migration | apply against ephemeral DB; down + re-apply | no orphaned tables; migration tool reports applied / schema version updated |
+| API endpoint | exercise endpoint with representative inputs (curl, gRPC, etc.) | HTTP 200 + expected JSON body |
+| Build pipeline / Dockerfile | build artifact + launch + healthcheck (see `runtime-launch-validation`) | transcript captured; exit 0 |
+| Version pin update | run version-skew audit (see `finishing-a-development-branch` Step 1c) + relaunch artifact | transcript captured; audit clean |
+| CLI command | `cmd --help` + representative invocation | help text correct; exit 0 |
+| UI component | render in browser/dev server | screenshot or visual confirmation |
+| Plugin / extension | load into host + exercise representative call | exit 0; representative call returns expected value |
+| Documentation / comments | spell-check + render preview | no broken anchors |
+| Hook / trigger / event handler | fire the event; observe handler runs | logged side effect confirmed; assertion passes |
+
+These examples are illustrative minimums; per-task `Expected:` fields must be literal values the check can assert against.
+
+Every plan task must include the verification step appropriate to its change class, as defined in the table above. For tasks whose `finishing-a-development-branch` Step 1b trigger conditions are met (build configuration, deployment configuration, version pins on runtime components, startup configuration, migrations, plugin loading paths), include the runtime-launch-validation step in the TDD breakdown as well. Hook/trigger/event-handler changes are NOT in the Step 1b trigger list — they use only the class-appropriate verification from the table.
+
+The plan author writes the expected output literally — not "passes tests" but "logs `engine ready` within 10 seconds and `/healthz` returns 200".
 
 ## Bite-Sized Task Granularity
 
