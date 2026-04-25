@@ -52,7 +52,7 @@ Task tool (superpowers:code-reviewer):
      - Go projects with build tags: `go test -race -tags=<project's tag(s)> ./<changed-pkg>/...` — only include `-tags=e2e` if the project actually uses that tag AND you intend to run the integration tests. Don't force non-hermetic e2e runs that the rubric's hermeticity rule says to flag.
      - Go projects without build tags: `go test -race ./<changed-pkg>/...`
      - Rust: `cargo test --manifest-path <path>` (add `--features <relevant>` only when the diff actually changed features-gated code).
-     - For tests-only diffs: run only the changed test file; capture pass/fail.
+     - For tests-only diffs: run the smallest relevant test scope. Go: `go test ./<changed-pkg>/ -run <TestName>` to scope to specific tests, or the full package if multiple. Rust: `cargo test --manifest-path <path> --test <test-binary>` to scope to a specific integration test, or `cargo test -p <crate>` for the full crate. Capture pass/fail in the review.
 
   3. **Run the full bug-class checklist from
      `skills/requesting-code-review/SKILL.md`**. Every class. State for
@@ -71,15 +71,16 @@ Task tool (superpowers:code-reviewer):
      - Test-only deferral noted as "fix later in Task X" that is the third
        (or later) such deferral against the same module — call it out as
        cascade risk before it becomes a fix-cycle in a later task.
-     - **Vacuous assertion** — a test whose name promises behavior X but
-       whose body's assertion is tautologically true (e.g., `assert p < Floor || p > Ceiling`
-       on a value `0.135` that doesn't trigger either bound, so the OR is
-       always satisfied; or `assert err == nil || err != nil`). The function
-       under test may be correct, but the test doesn't prove it. A vacuously-passing
-       test is worse than no test — it gives false confidence. Promote to
-       Important and require the implementer to either rewrite the assertion
-       to actually exercise the named path, or rename the test to match what
-       it does.
+     - **Vacuous assertion** — two flavors: (a) syntactic tautology like
+       `assert err == nil || err != nil` or `assert p >= Floor || p < Floor`;
+       (b) assertion is non-tautological in general but the chosen test inputs
+       trivially satisfy it (e.g., `assert composed_probability == Floor` when
+       no input combination actually triggers clamping; `assert spawn_count ==
+       observed_count` when both values come from the same in-memory list).
+       The function under test may be correct, but the test doesn't prove it.
+       Worse than no test — gives false confidence. Promote to Important and
+       require the implementer to either rewrite the assertion to actually
+       exercise the named path, or rename the test to match what it does.
 
   ## Output format
 
