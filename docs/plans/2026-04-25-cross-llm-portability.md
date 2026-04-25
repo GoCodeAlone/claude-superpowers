@@ -138,7 +138,7 @@ find skills agents -type f -name '*.md' -print0 \
         BEGIN { skip = 0; ln = 0 }
         {
           ln++
-          if (/^[[:space:]]*<host:[[:space:]]*claude-code[[:space:]]*>/) { skip = 1; next }
+          if (/^[[:space:]]*<host:[[:space:]]*claude-code[[:space:]]*>[[:space:]]*$/) { skip = 1; next }
           if (/^[[:space:]]*<\/host>/) { skip = 0; next }
           if (!skip) { print ln ":" $0 }
         }
