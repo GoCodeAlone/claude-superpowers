@@ -87,7 +87,41 @@ Cannot proceed with merge/PR until tests pass.
 
 Stop. Don't proceed to Step 2.
 
-**If tests pass:** Continue to Step 2.
+**If tests pass:** Continue to Step 1b.
+
+### Step 1b: Runtime Launch Verification (conditional)
+
+**Trigger:** the diff includes any of:
+
+- Build configuration (Dockerfile, build script, CI build steps)
+- Deployment configuration (compose, Kubernetes manifests, deployment workflows)
+- Version pins on tooling, runtime, libraries
+- Application-startup configuration (config files read at boot)
+- Database migrations
+- Plugin / extension loading paths
+
+If triggered: invoke `skills/runtime-launch-validation/SKILL.md`. Build and launch the artifact under production-equivalent conditions, run the failure-signature scrape, capture the transcript, paste it into the PR body.
+
+If NOT triggered (pure logic refactor, doc-only, test-only): skip this step.
+
+**The launch transcript is required in the PR body when this step triggers.** Without it, the PR is not ready for merge — even if all unit tests pass.
+
+### Step 1c: Version-Skew Audit (conditional)
+
+**Trigger:** the diff updates any version pin (any "version: vX.Y.Z", "image: foo:vX.Y.Z", or `<package>@vX.Y.Z`).
+
+Action:
+
+1. Grep the repo for related pins (other versions of the same component, sibling tooling, components in the same release group).
+2. For each related pin, compare lag.
+3. If lag is >2 minor versions, flag in PR body:
+   ```
+   Version skew detected: pinned ToolingA@v1.2.0 while related EngineA@v1.6.0
+   (4 minor versions ahead). Compatibility verified via: <link or note>.
+   ```
+4. Resolve before merging — bump the lagging pin, OR state explicitly why the skew is intentional and safe.
+
+Action does NOT apply to: dev-only tooling pins (linters, formatters), where skew is generally benign.
 
 ### Step 2: Determine Base Branch
 
