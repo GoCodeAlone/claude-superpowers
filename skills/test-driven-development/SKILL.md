@@ -55,18 +55,21 @@ digraph tdd_cycle {
     verify_green [label="Verify passes\nAll green", shape=diamond];
     verify_invariant [label="Verify Regression\nInvariant", shape=diamond, style=filled, fillcolor="#ffffcc"];
     refactor [label="REFACTOR\nClean up", shape=box, style=filled, fillcolor="#ccccff"];
+    verify_refactor [label="Still green\nafter refactor?", shape=diamond];
     next [label="Next", shape=ellipse];
 
     red -> verify_red;
     verify_red -> green [label="yes"];
     verify_red -> red [label="wrong\nfailure"];
     green -> verify_green;
-    verify_green -> verify_invariant [label="yes\n(first pass)"];
+    verify_green -> verify_invariant [label="yes"];
     verify_green -> green [label="no"];
-    verify_green -> next [label="done\n(post-refactor)"];
     verify_invariant -> refactor [label="proven"];
-    verify_invariant -> red [label="test\ndoesn't\ncatch bug"];
-    refactor -> verify_green [label="stay\ngreen"];
+    verify_invariant -> red [label="test\nwrong"];
+    verify_invariant -> green [label="fix\nwrong"];
+    refactor -> verify_refactor;
+    verify_refactor -> next [label="yes"];
+    verify_refactor -> refactor [label="no"];
     next -> red;
 }
 ```
@@ -326,7 +329,7 @@ func TestDispatcher_AllMethods_IncludeKind(t *testing.T) {
     }
     for _, tc := range cases {
         t.Run(tc.name, func(t *testing.T) {
-            spy := &spyClient{} // spyClient is a test double; implement lastArgs as map[string]string (or use a type assertion if map[string]any)
+            spy := &spyClient{} // spyClient is a test double; implement lastArgs as map[string]string
             d := &Dispatcher{client: spy, kind: "widget"}
             if err := tc.call(d); err != nil {
                 t.Fatalf("unexpected error: %v", err)
@@ -411,6 +414,22 @@ $ npm test
 PASS
 ```
 
+**Verify Regression Invariant**
+
+Revert the fix (`if (!data.email?.trim()) ...` removed). Run test:
+```bash
+$ npm test
+FAIL: expected 'Email required', got undefined
+```
+
+Restore the fix. Run test:
+```bash
+$ npm test
+PASS
+```
+
+Proof pasted in PR body: "With fix reverted: FAIL — expected 'Email required', got undefined. With fix restored: PASS."
+
 **REFACTOR**
 Extract validation for multiple fields if needed.
 
@@ -426,6 +445,7 @@ Before marking work complete:
 - [ ] Output pristine (no errors, warnings)
 - [ ] Tests use real code (mocks only if unavoidable)
 - [ ] Edge cases and errors covered
+- [ ] Performed revert-and-restore proof for each new regression test (Verify Regression Invariant)
 
 Can't check all boxes? You skipped TDD. Start over.
 
