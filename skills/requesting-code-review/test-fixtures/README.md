@@ -19,5 +19,7 @@ Diff with one new method that omits an arg every sibling method sets.
 1. Write a generic diff that demonstrates a bug class from the checklist.
 2. Capture the dispatch text the implementer would have received.
 3. Capture both old and new prompt outputs (run the actual reviewer subagent
-   under each prompt; do not synthesize).
+   under each prompt; do not synthesize). If a result file was author-written
+   rather than captured from a live run, add `<!-- synthesized -->` as the
+   first line so readers know it is illustrative, not a recorded output.
 4. The new prompt MUST flag where the old approved.

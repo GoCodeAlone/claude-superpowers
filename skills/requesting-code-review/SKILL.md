@@ -188,24 +188,34 @@ task description.
 
 You: Let me request code review before proceeding.
 
-BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
+BASE_SHA=$(git rev-parse HEAD~1)  # or: git log --oneline | grep "Task 1" | head -1 | awk '{print $1}'
 HEAD_SHA=$(git rev-parse HEAD)
 
-[Dispatch superpowers:code-reviewer subagent]
-  WHAT_WAS_IMPLEMENTED: Verification and repair functions for conversation index
-  PLAN_OR_REQUIREMENTS: Task 2 from docs/plans/deployment-plan.md
-  BASE_SHA: a7981ec
-  HEAD_SHA: 3df7661
-  DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
+[Dispatch superpowers:code-reviewer subagent with the review-request template above]
+  <diff>: output of git diff $BASE_SHA..$HEAD_SHA
+  <dispatch text>: "Add verifyIndex() and repairIndex() with 4 issue types (Task 2)"
 
 [Subagent returns]:
-  Strengths: Clean architecture, real tests
-  Issues:
-    Important: Missing progress indicators
-    Minor: Magic number (100) for reporting interval
-  Assessment: Ready to proceed
 
-You: [Fix progress indicators]
+### Finding 1 — verifyIndex does not emit progress during long scans
+- **Severity**: Important
+- **Bug class**: Missing edge cases
+- **Location**: `store/index.go:47`
+- **What's wrong**: The loop over all index entries has no progress output; callers have no signal during long-running verification.
+- **Why it matters**: On large indexes the caller blocks silently; operators cannot distinguish a hung process from normal operation.
+- **Suggested fix**: Emit a log line every N entries (e.g., `log.Printf("verified %d/%d entries", i, total)`).
+
+### Finding 2 — Magic number 100 in repairIndex batch size
+- **Severity**: Minor
+- **Bug class**: other (magic literal)
+- **Location**: `store/index.go:112`
+- **What's wrong**: Batch size is hard-coded as `100` with no named constant or comment.
+- **Why it matters**: Future readers cannot distinguish intentional tuning from accidental value.
+- **Suggested fix**: Extract `const repairBatchSize = 100` and reference it.
+
+Verdict: REQUEST-CHANGES — one Important finding (missing progress indicators); fix before merge.
+
+You: [Fix progress indicators, extract constant]
 [Continue to Task 3]
 ```
 

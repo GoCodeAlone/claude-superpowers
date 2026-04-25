@@ -1,3 +1,4 @@
+<!-- synthesized -->
 ## Scope-vs-dispatch compliance gate
 
 Dispatch asked for: an `Inspect` method matching the sibling convention.

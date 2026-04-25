@@ -1,3 +1,4 @@
+<!-- synthesized -->
 ### Strengths
 - The `Inspect` method follows the same `Send`-with-args pattern as `Create` and `Delete`.
 - Code is concise and readable.
