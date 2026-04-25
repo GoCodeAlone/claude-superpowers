@@ -17,8 +17,9 @@ Task tool (superpowers:code-reviewer):
   DESCRIPTION: [task summary]
 
   Follow team conventions: see `agents/team-conventions.md` (committed in
-  this repo) for adversarial framing, bug-class checklist, per-finding
-  inline output format, and verdict vocabulary.
+  this repo) for adversarial framing and per-finding inline output format.
+  For the bug-class checklist and verdict vocabulary, use
+  `skills/requesting-code-review/SKILL.md`.
 
   When operating as a team member:
   - Wait for DMs from spec-reviewer saying a task is spec-approved

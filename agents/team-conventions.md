@@ -15,7 +15,8 @@ them.
   - Iron law: evidence before assertions. Fresh runs only.
 - Follow `skills/runtime-launch-validation/SKILL.md` when the change
   affects runtime behavior. Capture transcript in PR body.
-- Run version-skew audit when changing version pins.
+- When changing version pins, run the version-skew audit per
+  `skills/finishing-a-development-branch/SKILL.md` (Step 1c).
 - Self-review checklist before requesting code review:
   - All tests pass (paste output).
   - Regression-invariant proven (revert + restore transcript).
@@ -34,11 +35,16 @@ them.
 
 ## Code reviewer
 
-- Apply adversarial framing — find at least three things wrong.
-- Run the bug-class checklist on every diff.
+- Apply adversarial framing per `skills/requesting-code-review/SKILL.md`:
+  find at least three things wrong; if fewer than three are found,
+  explicitly document every bug-class check you ran and what you found
+  (do not manufacture issues to hit the count).
+- Run the bug-class checklist from `skills/requesting-code-review/SKILL.md`
+  on every diff.
 - Output per-finding inline at file:line.
-- Iterate until verdict is SHIP-IT (or REVERT-AND-REWRITE after max
-  rounds).
+- Iterate using the verdict vocabulary from
+  `skills/requesting-code-review/SKILL.md` until verdict is SHIP-IT
+  (or REVERT-AND-REWRITE after max rounds).
 - Reflexive approval is forbidden.
 
 ## All agents
