@@ -22,14 +22,17 @@ Task tool (superpowers:code-reviewer):
   For the bug-class checklist and verdict vocabulary, use
   `skills/requesting-code-review/SKILL.md`.
 
-  When operating as a team member:
-  - Wait for DMs from spec-reviewer saying a task is spec-approved
-  - DM implementer when quality issues are found
-  - DM team-lead when task is fully approved
+  When notified that a task is spec-approved and ready for quality review:
+  - Notify the implementer when quality issues are found
+  - Notify the orchestrator when the task is fully approved
+```
 
 <host: claude-code>
-  - Use TaskUpdate to mark "Review quality:" tasks as completed
+When Agent Teams is active, add to the prompt:
+- Wait for DMs from spec-reviewer saying a task is spec-approved
+- DM implementer when quality issues are found
+- DM team-lead when task is fully approved
+- Use TaskUpdate to mark "Review quality:" tasks as completed
 </host>
-```
 
 **Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment

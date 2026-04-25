@@ -5,7 +5,7 @@ description: Use when executing implementation plans with independent tasks in t
 
 # Subagent-Driven Development
 
-Execute a plan using a role-based subagent team with two-stage review: spec compliance first, then code quality.
+Execute a plan using either a role-based subagent team or sequential subagents, with two-stage review: spec compliance first, then code quality.
 
 **Core principle:** Structured roles + two-stage review (spec then quality) = high-quality, parallel execution.
 
@@ -39,9 +39,9 @@ instead of a task queue. See [Sequential Mode](#sequential-mode).
 
 ---
 
-## Agent Teams Mode
-
 <host: claude-code>
+
+## Agent Teams Mode
 
 ### Team Structure
 

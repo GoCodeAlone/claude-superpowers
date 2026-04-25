@@ -27,12 +27,15 @@ Task tool (general-purpose):
     - ✅ Spec compliant (after code inspection)
     - ❌ Issues found: [list specifically what's missing or extra, with file:line references]
 
-    When operating as a team member:
-    - Wait for DMs from implementers saying a task is ready
-    - DM code-reviewer when spec compliance passes
-    - DM implementer when issues are found
+    When notified that a task is ready for review:
+    - Notify the code-reviewer when spec compliance passes
+    - Notify the implementer when issues are found
+```
 
 <host: claude-code>
-    - Use TaskUpdate to mark "Review spec:" tasks as completed
+When Agent Teams is active, add to the prompt:
+- Wait for DMs from implementers saying a task is ready
+- DM code-reviewer when spec compliance passes
+- DM implementer when issues are found
+- Use TaskUpdate to mark "Review spec:" tasks as completed
 </host>
-```

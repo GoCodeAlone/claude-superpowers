@@ -25,10 +25,12 @@ Invoked automatically by `writing-plans` in autonomous mode. Can also be invoked
 
 ## Dispatching the Alignment Agent
 
-Dispatch a Sonnet agent to perform the comparison:
+<host: claude-code>
+
+Dispatch a `balanced`-tier agent to perform the comparison:
 
 ```
-Agent tool (general-purpose, model: sonnet):
+Agent tool (general-purpose, model: balanced):
   description: "Check alignment: design vs plan"
   prompt: |
     You are verifying that an implementation plan aligns with its design document.
@@ -71,6 +73,8 @@ Agent tool (general-purpose, model: sonnet):
 
     **Drift Items:** [list specific items to fix]
 ```
+
+</host>
 
 ## On FAIL
 
