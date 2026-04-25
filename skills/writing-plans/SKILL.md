@@ -57,7 +57,8 @@ When the orchestrator wants the pipeline to halt after alignment-check (no execu
 2. Commit the plan as normal.
 3. Invoke `superpowers:alignment-check` as normal.
 4. **On alignment PASS: STOP.** Do NOT invoke subagent-driven-development.
-5. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `subagent-driven-development` directly.
+5. **On alignment FAIL:** revise the plan based on drift items, re-check (max 2 cycles) — same as default Autonomous Mode. After revision, if PASS, still STOP (do not proceed to execution).
+6. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `subagent-driven-development` directly.
 
 **When to use:**
 

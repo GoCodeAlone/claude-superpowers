@@ -85,8 +85,8 @@ When the user wants design exploration without execution, they pass `--design-on
 
 1. Run the full brainstorming flow (explore context → questions → approaches → design → write design doc → commit).
 2. When invoking writing-plans, propagate the `--design-only` flag.
-3. writing-plans honors the flag: alignment-check PASS → STOP.
-4. The pipeline ends with a committed design doc + plan in `docs/plans/`. No execution dispatched.
+3. writing-plans honors the flag: alignment-check PASS → STOP (no execution dispatched). On alignment FAIL, writing-plans revises and re-checks per its normal FAIL handling, then stops — still no execution dispatched.
+4. The pipeline ends with a committed design doc + plan in `docs/plans/`.
 
 **Default (no flag):** brainstorming → writing-plans → alignment-check → subagent-driven-development → … (autonomous handoff to execution).
 
