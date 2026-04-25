@@ -347,6 +347,30 @@ The next method that drifts the same way fails this test on first commit.
 
 **Regression Invariant check for class-invariant tests:** after GREEN, apply the revert-and-restore proof to the table-driven test: revert only the previously-broken method so the overall test fails (its row fails; correct siblings still pass), then restore it so the full table passes again. Optionally, temporarily introduce the same invariant violation into a known-good sibling to prove its row would also fail, then restore both and confirm the table is green.
 
+## When the Change Crosses an Interface Boundary
+
+An interface boundary is any point where two independent components exchange data or control: producer→consumer, caller→callee, plugin→host, sender→handler. When a change touches both sides of such a boundary, both sides require test coverage — and at least one test must exercise the full crossing end-to-end.
+
+**Why independent unit tests on each side are insufficient:** each side's unit test mocks the other. If the contract between them drifts (wrong field name, wrong type, wrong call sequence), both unit tests continue to pass while the integration is broken. The end-to-end test is the only gate that catches contract drift.
+
+**Heuristic — does this apply?**
+
+- Does the change add a new method, field, event type, or hook?
+- Does that addition exist on one side (producer/server/plugin) and need to be consumed on another (consumer/client/host)?
+- Would either side compile and pass its unit tests even if the other side had not been updated?
+
+If two or more are yes: the task is not complete until both sides are wired and a test exercises the full crossing.
+
+**Coverage rule:**
+1. Unit test the producer side (asserts it emits the new method/field/hook correctly).
+2. Unit test the consumer side (asserts it handles the new method/field/hook correctly).
+3. Integration test the crossing (no mocks on either side of the boundary; a real call from producer to consumer).
+
+**Red flags for one-sided wiring:**
+- The PR only modifies files on one side of the boundary.
+- Tests on the consumer side mock the producer with a hardcoded stub that was never updated to match the new contract.
+- The new method/field/hook is added to the producer but the consumer has a `// TODO: handle` comment.
+
 ## Common Rationalizations
 
 | Excuse | Reality |
@@ -362,6 +386,20 @@ The next method that drifts the same way fails this test on first commit.
 | "TDD will slow me down" | TDD faster than debugging. Pragmatic = test-first. |
 | "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
 | "Existing code has no tests" | You're improving it. Add tests for existing code. |
+
+## Proper Solution, Not Just Passing Tests
+
+A test passing proves the symptom is gone — not that the root cause is fixed.
+
+**The shortcut-bias trap:** an implementer adds a nil-guard, a special case, or a retry loop. Tests go green. The underlying defect is still present — only its visible expression is suppressed. Future changes re-expose it.
+
+**The check:** after GREEN, ask — "if I revert only the root-cause fix and keep the symptom suppressor, would the test still pass?" If yes, the test is not a regression gate for the actual bug. Write a test that directly targets the root cause.
+
+**Examples:**
+- A function returns nil when called with malformed input. The fix adds `if result == nil { return defaultValue }` at the call site. The test passes. The function still returns nil — the callee is broken, but the caller hides it. A proper test exercises the function directly and asserts it never returns nil for valid inputs.
+- A concurrent write causes a data race. The fix adds a sleep before the assertion. The test passes (sometimes). The race still exists. A proper fix removes the race; a proper test uses synchronization primitives, not timing.
+
+**Regression-invariant corollary:** during the revert-and-restore proof (RED phase), verify the test fails because of the root cause, not a side-effect. If you cannot identify which line of production code causes the failure, the test is not precise enough.
 
 ## Red Flags - STOP and Start Over
 
