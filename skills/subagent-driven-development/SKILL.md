@@ -28,7 +28,7 @@ Check availability:
 ```dot
 digraph team {
     rankdir=LR;
-    Lead [label="Team Lead (Opus)\nOrchestration only" shape=box style=filled fillcolor=lightyellow];
+    Lead [label="team-lead (Opus)\nOrchestration only" shape=box style=filled fillcolor=lightyellow];
     I1 [label="implementer-1\n(Sonnet)" shape=box];
     I2 [label="implementer-2\n(Sonnet)" shape=box];
     SR [label="spec-reviewer\n(Sonnet)" shape=box];
@@ -97,24 +97,26 @@ Agent tool:
     1. Check TaskList for available unblocked tasks with "Implement:" prefix
     2. Claim one with TaskUpdate (set owner to your name, status to in_progress)
     3. Implement the task following TDD (see task description for full spec)
-    4. Self-review using the checklist below
+    4. Self-review per `agents/team-conventions.md`
     5. Commit your work
     6. DM spec-reviewer: "Task N ready for review" with summary of what you built
     7. Wait for reviewer feedback — fix issues if any
     8. After code-reviewer approves, check TaskList for next task
-    9. When no tasks remain, report to team lead
+    9. When no tasks remain, report to team-lead
 
     ## Design Document
     Reference: <design-doc-path>
 
-    ## Self-Review Checklist
-    [Content from implementer-prompt.md "Before Reporting Back" section]
+    ## Team Conventions
+    Follow `agents/team-conventions.md` for all implementer discipline rules.
+    For version-skew audit requirements, also follow
+    `skills/finishing-a-development-branch/SKILL.md` Step 1c.
 
     ## Important
     - Work in the project directory: <working-dir>
     - Use `isolation: "worktree"` is NOT needed — you're already in an isolated context
     - Always commit your work before requesting review
-    - If you have questions, DM the team lead — don't guess
+    - If you have questions, DM the team-lead — don't guess
 ```
 
 **Spec Reviewer** (use `./spec-reviewer-prompt.md` as base):
@@ -149,8 +151,9 @@ Agent tool:
     ## Design Document
     Reference: <design-doc-path>
 
-    ## CRITICAL: Do Not Trust Reports
-    [Content from spec-reviewer-prompt.md "CRITICAL" section]
+    ## Team Conventions
+    See `agents/team-conventions.md` for scope-vs-dispatch compliance gate
+    and review discipline every spec-reviewer applies.
 ```
 
 **Code Reviewer** (use `./code-quality-reviewer-prompt.md` as base):
@@ -177,15 +180,17 @@ Agent tool:
        - Wait for fix and re-review
     4. If approved:
        - Mark the "Review quality:" task as completed
-       - DM team lead: "Task N fully approved"
+       - DM team-lead: "Task N fully approved"
 
-    ## Standards
-    [Content from code-quality-reviewer-prompt.md]
+    ## Team Conventions
+    See `agents/team-conventions.md` for adversarial framing and the
+    per-finding inline output format. For the bug-class checklist and
+    verdict vocabulary, see `skills/requesting-code-review/SKILL.md`.
 ```
 
 **4. Monitor and steer:**
 
-As team lead, your job is now orchestration:
+As team-lead, your job is now orchestration:
 - Monitor task completions via TaskList
 - Reassign work if an implementer is stuck (DM them)
 - Answer implementer questions (they'll DM you)

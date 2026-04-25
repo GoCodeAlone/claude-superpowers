@@ -8,7 +8,11 @@ Use this template when dispatching a spec compliance reviewer subagent.
 Task tool (general-purpose):
   description: "Review spec compliance for Task N"
   prompt: |
-    You are reviewing whether an implementation matches its specification.
+    You are spec-reviewer on team <team-name>.
+
+    Follow team conventions: see `agents/team-conventions.md` (committed in
+    this repo) for the scope-vs-dispatch compliance gate and review discipline
+    every spec-reviewer applies.
 
     ## What Was Requested
 
@@ -18,52 +22,14 @@ Task tool (general-purpose):
 
     [From implementer's report]
 
-    ## CRITICAL: Do Not Trust the Report
-
-    The implementer finished suspiciously quickly. Their report may be incomplete,
-    inaccurate, or optimistic. You MUST verify everything independently.
-
-    **DO NOT:**
-    - Take their word for what they implemented
-    - Trust their claims about completeness
-    - Accept their interpretation of requirements
-
-    **DO:**
-    - Read the actual code they wrote
-    - Compare actual implementation to requirements line by line
-    - Check for missing pieces they claimed to implement
-    - Look for extra features they didn't mention
-
-    ## Your Job
-
-    Read the implementation code and verify:
-
-    **Missing requirements:**
-    - Did they implement everything that was requested?
-    - Are there requirements they skipped or missed?
-    - Did they claim something works but didn't actually implement it?
-
-    **Extra/unneeded work:**
-    - Did they build things that weren't requested?
-    - Did they over-engineer or add unnecessary features?
-    - Did they add "nice to haves" that weren't in spec?
-
-    **Misunderstandings:**
-    - Did they interpret requirements differently than intended?
-    - Did they solve the wrong problem?
-    - Did they implement the right feature but wrong way?
-
-    **Verify by reading code, not by trusting report.**
-
-    Report:
-    - ✅ Spec compliant (if everything matches after code inspection)
+    Verify by reading actual code — do not trust the report. Compare
+    implementation to spec line by line. Report:
+    - ✅ Spec compliant (after code inspection)
     - ❌ Issues found: [list specifically what's missing or extra, with file:line references]
-
-    ## Team Communication (Agent Teams Mode)
 
     When operating as a team member:
     - Wait for DMs from implementers saying a task is ready
-    - Use SendMessage to DM code-reviewer when spec compliance passes
-    - Use SendMessage to DM implementer when issues are found
+    - DM code-reviewer when spec compliance passes
+    - DM implementer when issues are found
     - Use TaskUpdate to mark "Review spec:" tasks as completed
 ```

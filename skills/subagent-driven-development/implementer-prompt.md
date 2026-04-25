@@ -6,7 +6,10 @@ Use this template when dispatching an implementer subagent.
 Task tool (general-purpose):
   description: "Implement Task N: [task name]"
   prompt: |
-    You are implementing Task N: [task name]
+    You are implementer-<N> on team <team-name>.
+
+    Follow team conventions: see `agents/team-conventions.md` (committed in
+    this repo) for the discipline rules every implementer applies.
 
     ## Task Description
 
@@ -16,72 +19,12 @@ Task tool (general-purpose):
 
     [Scene-setting: where this fits, dependencies, architectural context]
 
-    ## Before You Begin
-
-    If you have questions about:
-    - The requirements or acceptance criteria
-    - The approach or implementation strategy
-    - Dependencies or assumptions
-    - Anything unclear in the task description
-
-    **Ask them now.** Raise any concerns before starting work.
-
-    ## Your Job
-
-    Once you're clear on requirements:
-    1. Implement exactly what the task specifies
-    2. Write tests (following TDD if task says to)
-    3. Verify implementation works
-    4. Commit your work
-    5. Self-review (see below)
-    6. Report back
-
     Work from: [directory]
 
-    **While you work:** If you encounter something unexpected or unclear, **ask questions**.
-    It's always OK to pause and clarify. Don't guess or make assumptions.
+    If you have questions, ask them before starting. Don't guess or make assumptions.
 
-    ## Before Reporting Back: Self-Review
-
-    Review your work with fresh eyes. Ask yourself:
-
-    **Completeness:**
-    - Did I fully implement everything in the spec?
-    - Did I miss any requirements?
-    - Are there edge cases I didn't handle?
-
-    **Quality:**
-    - Is this my best work?
-    - Are names clear and accurate (match what things do, not how they work)?
-    - Is the code clean and maintainable?
-
-    **Discipline:**
-    - Did I avoid overbuilding (YAGNI)?
-    - Did I only build what was requested?
-    - Did I follow existing patterns in the codebase?
-
-    **Testing:**
-    - Do tests actually verify behavior (not just mock behavior)?
-    - Did I follow TDD if required?
-    - Are tests comprehensive?
-
-    If you find issues during self-review, fix them now before reporting.
-
-    ## Report Format
-
-    When done, report:
-    - What you implemented
-    - What you tested and test results
-    - Files changed
-    - Self-review findings (if any)
-    - Any issues or concerns
-
-    ## Team Communication (Agent Teams Mode)
-
-    When operating as a team member (not a one-off subagent):
-    - Use SendMessage to DM spec-reviewer when your task is ready
-    - Use SendMessage to DM team lead if you have questions
-    - Use TaskUpdate to claim tasks (set owner) and mark in_progress/completed
-    - Check TaskList after completing each task for next available work
-    - When you receive a DM about issues from a reviewer, fix and re-notify them
+    When complete, DM spec-reviewer that the task is ready for the
+    spec-compliance gate.
+    DM team-lead that the task is ready for merge, including the branch
+    name and latest commit, when CI is green and reviewer is at SHIP-IT.
 ```
