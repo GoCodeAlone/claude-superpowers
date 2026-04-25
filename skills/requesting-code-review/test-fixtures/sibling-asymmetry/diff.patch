@@ -1,0 +1,23 @@
+--- a/lib/dispatcher.go
++++ b/lib/dispatcher.go
+@@ -10,6 +10,12 @@ func (d *Dispatcher) Create(req Request) error {
+   return d.client.Send("create", map[string]any{
+     "kind":    d.kind,
+     "name":    req.Name,
+     "payload": req.Payload,
+   })
+ }
+
++func (d *Dispatcher) Inspect(req Request) error {
++  return d.client.Send("inspect", map[string]any{
++    "name":    req.Name,
++    "payload": req.Payload,
++  })
++}
++
+ func (d *Dispatcher) Delete(req Request) error {
+   return d.client.Send("delete", map[string]any{
+     "kind":    d.kind,
+     "name":    req.Name,
+   })
+ }
