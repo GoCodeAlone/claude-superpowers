@@ -85,6 +85,17 @@ Fetch and follow instructions from https://raw.githubusercontent.com/GoCodeAlone
 
 Start a new session in your chosen platform and ask for something that should trigger a skill (for example, "help me plan this feature" or "let's debug this issue"). The agent should automatically invoke the relevant superpowers skill.
 
+## Cross-LLM Compatibility
+
+Superpowers skills run on any host that supports the SKILL.md format. Host-specific tools (like Agent Teams) are conditioned with `<host: claude-code>` blocks so other hosts skip them gracefully.
+
+| Host | Install path | Native skill discovery | Notes |
+|---|---|---|---|
+| Claude Code | `~/.claude/plugins/marketplace/superpowers/` | yes | Full Agent Teams support (experimental flag) |
+| Codex | `~/.agents/skills/superpowers/` | yes | Sequential sub-agent dispatch; `/plan` slash; `/agent` switching |
+| OpenCode | `~/.config/opencode/skills/superpowers/` | yes | Tool mapping documented in `.opencode/INSTALL.md` |
+| Cursor | manual reference | partial | Plugin manifest stub; install path TBD |
+
 ## The Basic Workflow
 
 1. **brainstorming** - Activates before writing code. Refines rough ideas through questions, explores alternatives, presents design in sections for validation. Saves design document.

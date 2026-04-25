@@ -7,7 +7,7 @@ Guide for using Superpowers with OpenAI Codex via native skill discovery.
 Tell Codex:
 
 ```
-Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md
+Fetch and follow instructions from https://raw.githubusercontent.com/GoCodeAlone/claude-superpowers/refs/heads/main/.codex/INSTALL.md
 ```
 
 ## Manual Installation
@@ -21,7 +21,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/obra/superp
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/obra/superpowers.git ~/.codex/superpowers
+   git clone https://github.com/GoCodeAlone/claude-superpowers.git ~/.codex/superpowers
    ```
 
 2. Create the skills symlink:
@@ -114,7 +114,19 @@ Optionally delete the clone: `rm -rf ~/.codex/superpowers` (Windows: `Remove-Ite
 
 Junctions normally work without special permissions. If creation fails, try running PowerShell as administrator.
 
+## Cross-LLM Behavior
+
+Superpowers skills use `<host: claude-code>` blocks to gate content that only applies to Claude Code (Agent Teams, specific tool names, etc.). On Codex, those blocks are skipped — the rest of the skill runs as-is.
+
+To let skills detect that they are running on Codex, add a host declaration to your `~/.codex/AGENTS.md`:
+
+```markdown
+Host: codex
+```
+
+This single line enables host-conditional skill logic. See `.codex/INSTALL.md` for the full declaration snippet.
+
 ## Getting Help
 
-- Report issues: https://github.com/obra/superpowers/issues
-- Main documentation: https://github.com/obra/superpowers
+- Report issues: https://github.com/GoCodeAlone/claude-superpowers/issues
+- Main documentation: https://github.com/GoCodeAlone/claude-superpowers

@@ -1,0 +1,27 @@
+name: Skill Content Check
+
+on:
+  push:
+    paths:
+      - 'skills/**'
+      - 'agents/**'
+      - 'tests/skill-content-grep.sh'
+      - '.github/workflows/skill-content-check.yml'
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'agents/**'
+      - 'tests/skill-content-grep.sh'
+      - '.github/workflows/skill-content-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  skill-content-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check skill content for host-specific tokens
+        run: bash tests/skill-content-grep.sh

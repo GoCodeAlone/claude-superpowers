@@ -10,7 +10,7 @@
 ### 1. Clone Superpowers
 
 ```bash
-git clone https://github.com/obra/superpowers.git ~/.config/opencode/superpowers
+git clone https://github.com/GoCodeAlone/claude-superpowers.git ~/.config/opencode/superpowers
 ```
 
 ### 2. Register the Plugin
@@ -113,7 +113,20 @@ When skills reference Claude Code tools:
 - `Skill` tool → OpenCode's native `skill` tool
 - File operations → your native tools
 
+## Cross-LLM Behavior
+
+Superpowers skills use `<host: claude-code>` blocks to gate Claude Code-only content. OpenCode skips those blocks automatically; no configuration needed.
+
+To enable host-conditional logic inside skills (so skills can adapt behavior per host), declare your host in `~/.config/opencode/AGENTS.md`:
+
+```markdown
+# Superpowers host declaration
+Host: opencode
+```
+
+Add this block once. Skills that inspect the host context will use it to pick the right execution path.
+
 ## Getting Help
 
-- Report issues: https://github.com/obra/superpowers/issues
-- Full documentation: https://github.com/obra/superpowers/blob/main/docs/README.opencode.md
+- Report issues: https://github.com/GoCodeAlone/claude-superpowers/issues
+- Full documentation: https://github.com/GoCodeAlone/claude-superpowers/blob/main/docs/README.opencode.md
