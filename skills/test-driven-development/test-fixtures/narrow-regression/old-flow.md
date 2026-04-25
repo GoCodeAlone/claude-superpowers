@@ -7,9 +7,9 @@
 
 ## Hidden problem
 
-The fix is an over-correction. For input `[]int{}` the function now
-panics (index out of range). The test never exercised the empty-input
-path. The original "returns 0 for empty" symptom is now WORSE (panic
-vs. silent wrong answer), but the new test doesn't catch it.
+The fix is an over-correction. For input `[]int{}` a sum function
+should return `0`, but the function now panics (index out of range).
+The test never exercised the empty-input path, so it missed this
+regression from correct empty-slice behavior to a crash.
 
 Reviewer approves. Merge. Production receives a crasher.

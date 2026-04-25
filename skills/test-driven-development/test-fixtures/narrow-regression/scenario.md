@@ -1,7 +1,8 @@
 # Narrow regression — correct test, under-scoped coverage
 
-A function `Sum(xs []int) int` is broken: it returns `0` for empty
-input AND for single-element input `[1]` (off-by-one in the loop).
+A function `Sum(xs []int) int` is supposed to return `0` for empty
+input. The actual bug is that it also returns `0` for single-element
+input like `[1]` because of an off-by-one error in the loop.
 
 The implementer "fixes" the loop and adds a test:
 
