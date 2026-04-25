@@ -139,7 +139,7 @@ Skill bodies use these two markers inline:
 
 A section without a `<host:>` marker is host-neutral and applies to all.
 
-These are **prose markers**, not parser directives. They are HTML-comment-shaped so they render harmlessly in any markdown viewer, but the model reads them and skips non-matching sections. We document this convention in `skills/writing-skills/SKILL.md` so future authors follow it.
+These are **prose markers**, not parser directives. They use angle-bracket tag syntax that most markdown renderers treat as unknown HTML tags and render harmlessly, but the model reads them and skips non-matching sections. We document this convention in `skills/writing-skills/SKILL.md` so future authors follow it.
 
 Example (excerpt from rewritten `subagent-driven-development`):
 
@@ -175,7 +175,7 @@ Skills refer to model tiers by **role** (`fast` / `balanced` / `frontier` / `cod
 
 Skills cite this table once: "Use a `balanced`-tier model — see `agents/model-tiers.md` for the host-specific name."
 
-The four hosts that pass through whatever model string the user has selected (OpenCode and Cursor) get blank entries in the table; the user's host config drives the choice.
+OpenCode and Cursor use `host-pass-through` in the table, meaning the host uses whatever model the user has selected in its own configuration; the user's host config drives the choice.
 
 ### 4. Workflow patterns with semantic gaps
 
@@ -187,7 +187,7 @@ Used heavily in `subagent-driven-development`. **No equivalent on Codex / OpenCo
 
 **Fallback for non-Claude hosts:** sequential sub-agent dispatch. The orchestrator (a) spawns implementer-1, (b) waits for it to return with a summary, (c) spawns spec-reviewer with the implementer's output, (d) waits, (e) spawns code-reviewer, etc. No cross-agent chat — the orchestrator carries state.
 
-This is precisely the "Legacy Mode (Sequential Subagents)" path already documented in `subagent-driven-development.md`. We rename "Legacy Mode" to **"Sequential Mode"** (which doesn't carry a "deprecated" connotation) and reverse the framing: Sequential Mode is the **default**; Agent Teams is a Claude-Code-only enhancement.
+This is precisely the "Legacy Mode (Sequential Subagents)" path already documented in `skills/subagent-driven-development/SKILL.md`. We rename "Legacy Mode" to **"Sequential Mode"** (which doesn't carry a "deprecated" connotation) and reverse the framing: Sequential Mode is the **default**; Agent Teams is a Claude-Code-only enhancement.
 
 #### 4.2 Shared task list (TodoWrite / TaskCreate)
 
@@ -297,7 +297,7 @@ Mitigation: we already have an "everything-else" pattern — sections without a 
 
 **Risk: drift between skills and `agents/model-tiers.md`.**
 
-Mitigation: the grep guard from §8 also flags any direct mention of brand model names in skill bodies (`Sonnet`, `Opus`, `Haiku`, `gpt-5.x`) outside the `model-tiers.md` table itself. Skills must use role names.
+Mitigation: the grep guard from §8 flags direct mention of Claude-Code brand model names in skill bodies (`Sonnet`, `Opus`, `Haiku`, and their lowercase forms) outside the `agents/model-tiers.md` table itself. Skills must use role names (`fast`, `balanced`, `frontier`, `coding-specialist`). The guard does not currently flag Codex model identifiers; those are addressed by the `<host: ...>` marker convention rather than the grep guard.
 
 **Risk: re-naming "Legacy Mode" to "Sequential Mode" in `subagent-driven-development` confuses existing users.**
 
@@ -319,15 +319,17 @@ CI guard passes (the grep test from §8 finds no forbidden tokens outside marker
 
 The `tests/cross-llm-coverage.md` table shows every skill × host has either "host-conditional" or "host-neutral" status with no gaps.
 
-## Open questions deferred to implementation
+## Decisions made during implementation planning
 
-- **Grep-guard regex precision.** We need to permit `Sonnet`/`Opus`/`Haiku` inside `<host: claude-code>` blocks and inside `agents/model-tiers.md`, but forbid them elsewhere. Multi-line regex in bash is fiddly; a small Python or AWK script may be needed instead. To be decided at implementation time, recorded as a single task in the plan with two acceptable solutions.
+The following questions were open at design time and have since been resolved:
 
-- **Host-marker syntax.** The design above proposes `<host: claude-code>` … `</host>`. Alternative: HTML-style `<!-- host: claude-code -->` … `<!-- /host -->`. The former is shorter; the latter renders truly invisibly in markdown viewers. Pick one in the plan.
+- **Grep-guard implementation.** Single-pass AWK script (`tests/skill-content-grep.sh`). AWK tracks line numbers while skipping exclusive `<host: claude-code>` blocks; grep runs per-token on the annotated output. Multi-host blocks such as `<host: codex, claude-code>` are NOT skipped — content there is shown to codex users and must not contain Claude-only tokens.
 
-- **OpenCode plugin tool-mapping (existing).** `.opencode/INSTALL.md` already documents `TodoWrite → update_plan`. We should ensure the rewritten skills' OpenCode-conditional blocks use `update_plan` rather than `TodoWrite`. Already in scope; flagged here to ensure the implementer agent doesn't miss the OpenCode-specific tool name.
+- **Host-marker syntax.** `<host: claude-code>` … `</host>` (angle-bracket form). Rationale: visible when reading the document, including in rendered Markdown — unlike HTML-comment form which renderers hide; most markdown renderers treat unknown tags harmlessly.
 
-- **Cursor support depth.** Cursor's `.cursor-plugin/plugin.json` is currently a stub (no INSTALL.md, no plugin code). Cross-LLM portability of the skills' content will work for Cursor users, but the install path itself needs separate work. Out of scope for this design; flagged as a follow-up.
+- **OpenCode plugin tool-mapping.** Rewritten skills use `update_plan` in `<host: opencode>` blocks where they previously used `TodoWrite`. The `.opencode/INSTALL.md` mapping is the source of truth.
+
+- **Cursor support depth.** Cursor's `.cursor-plugin/plugin.json` remains a stub. Skills will include `<host: cursor>` blocks where they meaningfully diverge; the install path for Cursor is a separate follow-up outside this scope.
 
 ## Reference
 

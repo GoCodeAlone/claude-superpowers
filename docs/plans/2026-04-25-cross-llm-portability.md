@@ -62,26 +62,22 @@ PRs A and E are the bookend infrastructure work. B, C, D are content edits and c
 
 **Files:**
 - Create: `tests/skill-content-grep.sh`
-- Create: `tests/skill-content-grep.expected.txt`
 
 **Goal:** A repeatable check that fails if a forbidden Claude-only token appears in a skill body **outside** an allowed context (a `<host: claude-code>` block, the model-tiers table, or a known-allowed file).
 
-**Forbidden tokens (full word, case-sensitive):**
+**Forbidden tokens (full word, matched in both title-case and lowercase):**
 
 ```
-TodoWrite
-TaskCreate
-TaskUpdate
-TaskList
-TaskGet
-TeamCreate
-TeamDelete
-SendMessage
-EnterPlanMode
-Sonnet
-Opus
-Haiku
+TodoWrite TaskCreate TaskUpdate TaskList TaskGet
+TeamCreate TeamDelete SendMessage EnterPlanMode
+Sonnet Opus Haiku
+sonnet opus haiku
 ```
+
+Model-brand names are flagged in both cases because skills may reference them
+in YAML config (`model: sonnet`) as well as prose. Claude-specific tool names
+that appear in existing skill files (`AskUserQuestion`, `Agent`) are not in the
+initial token list; they will be added once those skills are migrated in PRs B–D.
 
 **Step 1: Write the failing test**
 
@@ -90,29 +86,35 @@ The test is the script itself. Save as `tests/skill-content-grep.sh`:
 ```bash
 #!/usr/bin/env bash
 # tests/skill-content-grep.sh
-# Fails if forbidden Claude-only tokens appear in skills/ outside allowed contexts.
+# Fails if forbidden Claude-only tokens appear in skills/ or agents/ outside allowed contexts.
 
-set -u
+set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 # Tokens that must not appear in host-neutral skill text.
+# Tool names below are Claude-Code-specific. Model-brand names are listed in
+# both title-case and lowercase because skills may reference them in YAML
+# (model: sonnet) as well as in prose. Skills must use role names instead
+# (fast / balanced / frontier / coding-specialist) per agents/model-tiers.md.
+# Note: Claude-specific tool names like AskUserQuestion and Agent are not in
+# this list yet — they will be addressed as skills migrate in PRs B–D.
+# Once migration is complete, add them here to prevent future bleed.
 TOKENS=(
   TodoWrite TaskCreate TaskUpdate TaskList TaskGet
   TeamCreate TeamDelete SendMessage EnterPlanMode
   Sonnet Opus Haiku
+  sonnet opus haiku
 )
 
 # Allowed files: tokens may appear here without restriction.
+# Keep paths to files under skills/ or agents/ only — those are the
+# directories that the find command below actually scans.
 ALLOWED_FILES=(
   "agents/model-tiers.md"
-  "tests/skill-content-grep.sh"
-  "tests/skill-content-grep.expected.txt"
 )
 
-# Build a regex for files to scan: skills/**/*.md plus agents/*.md except allowed.
-fail=0
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 
@@ -126,20 +128,27 @@ find skills agents -type f -name '*.md' -print0 \
         fi
       done
 
-      # Strip <host: claude-code>...</host> blocks (these are allowed to mention tokens).
-      stripped="$(awk '
-        BEGIN { skip = 0 }
-        /<host: *claude-code *>/ { skip = 1; next }
-        /<\/host>/ { skip = 0; next }
-        skip == 0 { print }
+      # Single-pass AWK: emit "LINENO:content" for lines outside exclusive
+      # <host: claude-code> blocks. Only blocks tagged EXCLUSIVELY with
+      # claude-code are skipped — a multi-host block like
+      # <host: codex, claude-code> is NOT skipped because its content is also
+      # shown to codex users who must not see Claude-only tokens.
+      # Markers must appear at the start of a line (after optional whitespace).
+      annotated="$(awk '
+        BEGIN { skip = 0; ln = 0 }
+        {
+          ln++
+          if (/^[[:space:]]*<host:[[:space:]]*claude-code[[:space:]]*>[[:space:]]*$/) { skip = 1; next }
+          if (/^[[:space:]]*<\/host>/) { skip = 0; next }
+          if (!skip) { print ln ":" $0 }
+        }
       ' "$file")"
 
       for token in "${TOKENS[@]}"; do
-        # Use grep -w for whole-word match.
-        if printf '%s\n' "$stripped" | grep -nw "$token" > /dev/null; then
-          printf '%s\n' "$stripped" | grep -nw "$token" \
-            | sed "s|^|$file:|" >> "$tmp"
-          fail=1
+        # grep -w for whole-word match; || true prevents non-zero exit on no matches.
+        matches="$(printf '%s\n' "$annotated" | grep -w "$token" || true)"
+        if [ -n "$matches" ]; then
+          printf '%s\n' "$matches" | sed "s|^|$file:|" >> "$tmp"
         fi
       done
     done
@@ -167,7 +176,7 @@ chmod +x tests/skill-content-grep.sh
 
 ```bash
 git add tests/skill-content-grep.sh
-git commit -m "test: add grep guard for Claude-only tokens in skill text"
+git commit -m "test: add AWK-based grep guard for Claude-only tokens in skill text"
 ```
 
 The guard will go from FAIL → PASS as Tasks 4–14 land. We do **not** add it to CI in this task; that's Task 17 once content is clean.
@@ -209,8 +218,8 @@ Skill bodies refer to roles, not brand names:
 
 When the model is following the skill on a specific host, it resolves the role
 through this table. Authors maintaining a skill must use role names, not
-`Sonnet` / `Opus` / `Haiku` / `gpt-5.x`. The grep guard
-(`tests/skill-content-grep.sh`) enforces this.
+`Sonnet` / `Opus` / `Haiku`. The grep guard
+(`tests/skill-content-grep.sh`) enforces the Claude-brand-name portion of this rule.
 
 ## Updating
 
@@ -391,10 +400,10 @@ Keep the prompt body itself unchanged — that text is host-neutral.
 **Step 3: Run the grep guard scoped to this file**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep alignment-check
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep alignment-check || true
 ```
 
-Expected: no matches reported for `skills/alignment-check/SKILL.md`.
+Expected: no output for `skills/alignment-check/SKILL.md` (no matches = PASS for this file; the overall script may still exit non-zero until other tasks land).
 
 **Step 4: Commit**
 
@@ -428,7 +437,7 @@ For tool names: wrap the surrounding paragraph in a `<host: claude-code>` block 
 **Step 3: Run the grep guard**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep pr-monitoring
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep pr-monitoring || true
 ```
 
 Expected: no matches.
@@ -502,7 +511,7 @@ Wrap the `AskUserQuestion` paragraph(s) in `<host: claude-code>`. Add `<host: co
 **Step 3: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep brainstorming
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep brainstorming || true
 ```
 
 Expect no matches.
@@ -611,7 +620,7 @@ For `implementer-prompt.md`, `spec-reviewer-prompt.md`, `code-quality-reviewer-p
 **Step 3: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep subagent-driven-development
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep subagent-driven-development || true
 ```
 
 Expect no matches outside `<host: claude-code>` blocks.
@@ -679,7 +688,7 @@ sequentially, or open multiple Cursor windows for true parallelism.
 **Step 2: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep dispatching-parallel-agents
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep dispatching-parallel-agents || true
 ```
 
 Expect no matches.
@@ -749,7 +758,7 @@ Replace each with the matching role name.
 **Step 3: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep writing-plans
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep writing-plans || true
 ```
 
 Expect no matches.
@@ -829,7 +838,7 @@ Restructure the surrounding paragraph so the rule "create one tracking entry per
 **Step 4: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep using-superpowers
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep using-superpowers || true
 ```
 
 Expect no matches.
@@ -873,7 +882,7 @@ Replace line 23 area with:
 **Step 2: Grep-clean**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep executing-plans
+guard_out="$(./tests/skill-content-grep.sh 2>&1)"; printf '%s\n' "$guard_out" | grep executing-plans || true
 ```
 
 Expect no matches.
@@ -1229,7 +1238,7 @@ The full plan is done when:
 2. `tests/cross-llm-coverage.md` shows every skill row populated.
 3. README, `.codex/INSTALL.md`, `.opencode/INSTALL.md` all reference the host declaration and the role vocabulary.
 4. CI workflow runs on every PR touching `skills/`, `agents/`, or the guard itself.
-5. Two distinct clean Copilot review timestamps exist on each PR before merge.
+5. Each PR has received at least one clean Copilot review pass before merge (recommended: two distinct clean passes at the same HEAD to guard against false positives).
 
 ## Execution Handoff
 
