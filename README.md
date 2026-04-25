@@ -94,7 +94,7 @@ Superpowers skills run on any host that supports the SKILL.md format. Host-speci
 | Claude Code | `~/.claude/plugins/marketplace/superpowers/` | yes | Full Agent Teams support (experimental flag) |
 | Codex | `~/.agents/skills/superpowers/` | yes | Sequential sub-agent dispatch; `/plan` slash; `/agent` switching |
 | OpenCode | `~/.config/opencode/skills/superpowers/` | yes | Tool mapping documented in `.opencode/INSTALL.md` |
-| Cursor | manual reference | partial | Plugin manifest stub; install path TBD |
+| Cursor | `/plugin-add superpowers` | yes (via plugin) | Plugin manifest defines skills/agents/commands/hooks |
 
 Full capability matrix: [docs/cross-llm-coverage.md](docs/cross-llm-coverage.md)  
 Per-skill host-conditional audit: [tests/cross-llm-coverage.md](tests/cross-llm-coverage.md)
