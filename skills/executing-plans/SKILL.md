@@ -25,6 +25,10 @@ Load plan, review critically, execute tasks in batches, report for review betwee
 Use TodoWrite — one entry per plan task.
 </host>
 
+<host: codex, opencode, cursor>
+If your environment has no built-in task system, maintain a numbered checklist tracking each task as pending, in-progress, or completed.
+</host>
+
 ### Step 2: Execute Batch
 **Default: First 3 tasks**
 

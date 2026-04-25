@@ -238,8 +238,6 @@ Invoke `superpowers:finishing-a-development-branch`.
 
 <host: codex, opencode, cursor>
 
-## Sequential Handoff Mode
-
 Use Sequential Mode — see the [Sequential Mode](#sequential-mode) section below.
 
 </host>
