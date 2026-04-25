@@ -6,6 +6,14 @@ Use this template when dispatching a code quality reviewer subagent.
 
 **Only dispatch after spec compliance review passes.**
 
+<host: claude-code>
+**Agent Teams additions:** When using Agent Teams, also add to the prompt:
+- Wait for DMs from spec-reviewer saying a task is spec-approved
+- DM implementer when quality issues are found
+- DM the orchestrator (team-lead) when task is fully approved
+- Use TaskUpdate to mark "Review quality:" tasks as completed
+</host>
+
 ```
 Task tool (superpowers:code-reviewer):
   Use template at skills/requesting-code-review/code-reviewer.md
@@ -22,11 +30,9 @@ Task tool (superpowers:code-reviewer):
   For the bug-class checklist and verdict vocabulary, use
   `skills/requesting-code-review/SKILL.md`.
 
-  When operating as a team member:
-  - Wait for DMs from spec-reviewer saying a task is spec-approved
-  - DM implementer when quality issues are found
-  - DM team-lead when task is fully approved
-  - Use TaskUpdate to mark "Review quality:" tasks as completed
+  When notified that a task is spec-approved and ready for quality review:
+  - Notify the implementer when quality issues are found
+  - Notify the orchestrator (team-lead on Claude Code) when the task is fully approved
 ```
 
 **Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment

@@ -33,7 +33,11 @@ LLMs respond to the same persuasion principles as humans. Understanding this psy
 **How it works in skills:**
 - Require announcements: "Announce skill usage"
 - Force explicit choices: "Choose A, B, or C"
+- Use tracking: task lists for checklists
+
+<host: claude-code>
 - Use tracking: TodoWrite for checklists
+</host>
 
 **When to use:**
 - Ensuring skills are actually followed
@@ -80,9 +84,16 @@ LLMs respond to the same persuasion principles as humans. Understanding this psy
 
 **Example:**
 ```markdown
+✅ Checklists without task tracking = steps get skipped. Every time.
+❌ Some people find task tracking helpful for checklists.
+```
+
+<host: claude-code>
+```markdown
 ✅ Checklists without TodoWrite tracking = steps get skipped. Every time.
 ❌ Some people find TodoWrite helpful for checklists.
 ```
+</host>
 
 ### 5. Unity
 **What it is:** Shared identity, "we-ness", in-group belonging.

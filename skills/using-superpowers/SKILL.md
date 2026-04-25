@@ -26,32 +26,32 @@ This is not negotiable. This is not optional. You cannot rationalize your way ou
 ```dot
 digraph skill_flow {
     "User message received" [shape=doublecircle];
-    "About to EnterPlanMode?" [shape=doublecircle];
+    "About to enter plan mode?" [shape=doublecircle];
     "Already brainstormed?" [shape=diamond];
     "Invoke brainstorming skill" [shape=box];
-    "Invoke writing-plans skill\n(prefers Claude's Plan Mode)" [shape=box];
+    "Invoke writing-plans skill" [shape=box];
     "Might any skill apply?" [shape=diamond];
     "Invoke Skill tool" [shape=box];
     "Announce: 'Using [skill] to [purpose]'" [shape=box];
     "Has checklist?" [shape=diamond];
-    "Create TodoWrite todo per item" [shape=box];
+    "Create task entry per checklist item" [shape=box];
     "Follow skill exactly" [shape=box];
     "Respond (including clarifications)" [shape=doublecircle];
 
-    "About to EnterPlanMode?" -> "Already brainstormed?";
+    "About to enter plan mode?" -> "Already brainstormed?";
     "Already brainstormed?" -> "Invoke brainstorming skill" [label="no"];
-    "Already brainstormed?" -> "Invoke writing-plans skill\n(prefers Claude's Plan Mode)" [label="yes"];
+    "Already brainstormed?" -> "Invoke writing-plans skill" [label="yes"];
     "Invoke brainstorming skill" -> "Might any skill apply?";
-    "Invoke writing-plans skill\n(prefers Claude's Plan Mode)" -> "Might any skill apply?";
+    "Invoke writing-plans skill" -> "Might any skill apply?";
 
     "User message received" -> "Might any skill apply?";
     "Might any skill apply?" -> "Invoke Skill tool" [label="yes, even 1%"];
     "Might any skill apply?" -> "Respond (including clarifications)" [label="definitely not"];
     "Invoke Skill tool" -> "Announce: 'Using [skill] to [purpose]'";
     "Announce: 'Using [skill] to [purpose]'" -> "Has checklist?";
-    "Has checklist?" -> "Create TodoWrite todo per item" [label="yes"];
+    "Has checklist?" -> "Create task entry per checklist item" [label="yes"];
     "Has checklist?" -> "Follow skill exactly" [label="no"];
-    "Create TodoWrite todo per item" -> "Follow skill exactly";
+    "Create task entry per checklist item" -> "Follow skill exactly";
 }
 ```
 

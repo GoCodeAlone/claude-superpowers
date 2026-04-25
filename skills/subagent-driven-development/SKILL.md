@@ -5,34 +5,54 @@ description: Use when executing implementation plans with independent tasks in t
 
 # Subagent-Driven Development
 
-Execute plan using Agent Teams (default) or sequential subagents (fallback), with two-stage review: spec compliance first, then code quality.
+Execute a plan using either a role-based subagent team or sequential subagents, with two-stage review: spec compliance first, then code quality.
 
-**Core principle:** Role-based team with persistent agents + two-stage review (spec then quality) = high quality, parallel execution
+**Core principle:** Structured roles + two-stage review (spec then quality) = high-quality, parallel execution.
 
-## Execution Mode Detection
+## Execution Mode
 
-**Default: Agent Teams** — when TeamCreate tool is available and `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is set.
+<host: claude-code>
 
-**Fallback: Sequential Subagents** — when Agent Teams is not available. Uses the legacy one-subagent-at-a-time flow.
+**Default: Agent Teams** — when the TeamCreate tool is available and
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is set, use persistent parallel agents with a shared
+task list. Each agent claims work independently; the team-lead orchestrates only.
 
-Check availability:
+**Fallback: Sequential Subagents** — when Agent Teams is not available, dispatch one subagent
+per task. See the [Sequential Mode](#sequential-mode) section below.
+
 ```
+# Runtime check
 # If TeamCreate tool exists in your tool list → use Agent Teams
-# Otherwise → use sequential subagent flow (see Legacy Mode below)
+# Otherwise → use Sequential Mode
 ```
+
+</host>
+
+<host: codex>
+
+**Sequential Subagents** — Codex does not provide a shared task list or persistent team
+chat. Spawn one subagent per task using Codex's native subagent tool, passing the full plan
+task text in the prompt. Use git branch names and PR diffs as the coordination surface
+instead of a task queue. See [Sequential Mode](#sequential-mode).
+
+</host>
+
+---
+
+<host: claude-code>
 
 ## Agent Teams Mode
 
-### Team Setup
+### Team Structure
 
 ```dot
 digraph team {
     rankdir=LR;
-    Lead [label="team-lead (Opus)\nOrchestration only" shape=box style=filled fillcolor=lightyellow];
-    I1 [label="implementer-1\n(Sonnet)" shape=box];
-    I2 [label="implementer-2\n(Sonnet)" shape=box];
-    SR [label="spec-reviewer\n(Sonnet)" shape=box];
-    CR [label="code-reviewer\n(Sonnet)" shape=box];
+    Lead [label="team-lead (frontier)\nOrchestration only" shape=box style=filled fillcolor=lightyellow];
+    I1 [label="implementer-1\n(balanced)" shape=box];
+    I2 [label="implementer-2\n(balanced)" shape=box];
+    SR [label="spec-reviewer\n(balanced)" shape=box];
+    CR [label="code-reviewer\n(balanced)" shape=box];
 
     Lead -> I1 [label="assign tasks"];
     Lead -> I2 [label="assign tasks"];
@@ -85,7 +105,7 @@ Agent tool:
   team_name: "<project-name>"
   name: "implementer-1"
   subagent_type: "general-purpose"
-  model: "sonnet"
+  model: "balanced"
   prompt: |
     You are implementer-1 on team <project-name>.
 
@@ -125,7 +145,7 @@ Agent tool:
   team_name: "<project-name>"
   name: "spec-reviewer"
   subagent_type: "general-purpose"
-  model: "sonnet"
+  model: "balanced"
   prompt: |
     You are spec-reviewer on team <project-name>.
 
@@ -146,7 +166,7 @@ Agent tool:
        - Re-review
     4. If spec compliant:
        - DM code-reviewer: "Task N spec-approved, ready for quality review"
-       - Mark the "Review spec:" task as completed
+       - Mark the "Review spec:" task as completed via TaskUpdate
 
     ## Design Document
     Reference: <design-doc-path>
@@ -162,7 +182,7 @@ Agent tool:
   team_name: "<project-name>"
   name: "code-reviewer"
   subagent_type: "general-purpose"
-  model: "sonnet"
+  model: "balanced"
   prompt: |
     You are code-reviewer on team <project-name>.
 
@@ -179,7 +199,7 @@ Agent tool:
        - DM the implementer who built it with specific issues
        - Wait for fix and re-review
     4. If approved:
-       - Mark the "Review quality:" task as completed
+       - Mark the "Review quality:" task as completed via TaskUpdate
        - DM team-lead: "Task N fully approved"
 
     ## Team Conventions
@@ -214,22 +234,56 @@ TeamDelete()
 
 Invoke `superpowers:finishing-a-development-branch`.
 
-## Legacy Mode (Sequential Subagents)
+</host>
 
-When Agent Teams is not available, fall back to the original sequential flow:
+<host: codex, opencode, cursor>
 
-1. Read plan, extract all tasks, create TodoWrite
-2. Per task:
-   a. Dispatch implementer subagent (./implementer-prompt.md)
-   b. Answer questions if any
-   c. Implementer implements, tests, commits, self-reviews
-   d. Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)
-   e. If issues → implementer fixes → re-review
-   f. Dispatch code quality reviewer (./code-quality-reviewer-prompt.md)
-   g. If issues → implementer fixes → re-review
-   h. Mark task complete
-3. After all tasks → dispatch final code reviewer
-4. Invoke finishing-a-development-branch
+Use Sequential Mode — see the [Sequential Mode](#sequential-mode) section below.
+
+</host>
+
+---
+
+## Sequential Mode
+
+Use when Agent Teams is not available, or on any host that does not provide persistent
+parallel agents. One subagent handles one task at a time; reviews happen between tasks.
+
+### Process
+
+For each task in the plan:
+
+1. **Dispatch implementer subagent** — provide the full task text, the design doc path, and
+   the working directory in the prompt. Use `./implementer-prompt.md` as the base template.
+2. **Answer questions** if the implementer surfaces blockers.
+3. Implementer implements, tests, commits, and self-reviews per `agents/team-conventions.md`.
+4. **Dispatch spec reviewer** — provide the task text and the implementer's commit SHA.
+   Use `./spec-reviewer-prompt.md` as the base template.
+5. If spec issues found → implementer fixes → re-review until spec-approved.
+6. **Dispatch code quality reviewer** — use `./code-quality-reviewer-prompt.md`.
+7. If quality issues found → implementer fixes → re-review until approved.
+8. Mark task complete and move to the next.
+
+After all tasks: invoke `superpowers:finishing-a-development-branch`.
+
+<host: codex>
+
+### Codex Coordination Notes
+
+Codex subagents do not share a task list. Use these conventions instead:
+
+- **Task identity**: pass `task_id: N` and the full task text in the prompt so each subagent
+  knows exactly what it owns. Do not rely on a shared queue.
+- **Handoff surface**: use git branch names (`task-N-<slug>`) and PR diffs as the review
+  surface. The spec-reviewer and code-reviewer read the PR diff, not a task record.
+- **Progress tracking**: after each task completes, record completion in the orchestrating
+  agent's own context (e.g., a local list) rather than a shared task table.
+- **No DM channel**: pass reviewer output back to the orchestrator as a return value; the
+  orchestrator decides whether to re-dispatch the implementer.
+
+</host>
+
+---
 
 ## Red Flags
 
@@ -237,17 +291,22 @@ When Agent Teams is not available, fall back to the original sequential flow:
 - Start implementation on main/master without explicit user consent
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
-- Make subagents/teammates read plan files (provide full text instead)
-- Skip scene-setting context
+- Make subagents/teammates read plan files — provide full text in the prompt instead
+- Skip scene-setting context in any subagent prompt
 - Start code quality review before spec compliance passes
 - Move to next task while either review has open issues
-- In Agent Teams mode: let the lead implement (orchestration only)
+
+<host: claude-code>
+- In Agent Teams mode: let the team-lead implement (orchestration only)
+</host>
 
 **If reviewer finds issues:**
 - Implementer fixes them
 - Reviewer reviews again
 - Repeat until approved
 - Don't skip the re-review
+
+---
 
 ## Integration
 
