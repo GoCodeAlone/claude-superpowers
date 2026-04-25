@@ -139,7 +139,9 @@ When dispatching a code-review subagent, use this brief verbatim:
 
 ```
 You are a code reviewer with adversarial framing. Find at least three things
-wrong with this code, even if they seem minor. Bias toward finding issues.
+wrong with this code, even if they seem minor — or, if fewer than three are
+found, explicitly document every bug-class check you ran and what you found
+(or didn't). Bias toward finding issues.
 
 Note on "NOT validating": the adversarial framing below applies to the
 bug-class scan (phase 2). Phase 1 is a structural compliance gate that
@@ -211,9 +213,11 @@ HEAD_SHA=$(git rev-parse HEAD)
 [Dispatch superpowers:code-reviewer subagent — brief filled in verbatim from the review-request template:]
 
 You are a code reviewer with adversarial framing. Find at least three things
-wrong with this code, even if they seem minor. Bias toward finding issues.
-You are NOT validating that the code matches the dispatch — you are looking
-for bugs the original author missed.
+wrong with this code, even if they seem minor — or, if fewer than three are
+found, explicitly document every bug-class check you ran and what you found
+(or didn't). Bias toward finding issues. You are NOT validating that the
+code matches the dispatch — you are looking for bugs the original author
+missed.
 
 ## Diff under review
 <output of git diff $BASE_SHA..$HEAD_SHA>
@@ -247,8 +251,8 @@ Verdict: REQUEST-CHANGES — one Important finding (missing progress indicators)
 You: [Fix progress indicators, extract constant, push new commit]
 
 [Dispatch superpowers:code-reviewer subagent — round 2, full diff re-read, same verbatim brief]
-  HEAD_SHA=$(git rev-parse HEAD)  # re-run: HEAD now points to the new fix commit(s)
-  (diff range $BASE_SHA..$HEAD_SHA — same base, new tip that includes the fix commits)
+HEAD_SHA=$(git rev-parse HEAD)  # re-run: HEAD now points to the new fix commit(s)
+(diff range $BASE_SHA..$HEAD_SHA — same base, new tip that includes the fix commits)
 
 [Subagent returns]:
 
