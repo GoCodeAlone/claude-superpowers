@@ -191,6 +191,7 @@ Confirm:
 ### Verify Regression Invariant — Prove the Test Catches the Bug
 
 After GREEN, before REFACTOR: prove the test actually catches the bug it gates.
+This step corresponds to the `verify_invariant` node in the diagram above — the path is `verify_green → verify_invariant → refactor`.
 
 1. **Revert** the production code change (just the fix — leave the test in place).
 2. **Run the new test.**
@@ -344,7 +345,7 @@ func TestDispatcher_AllMethods_IncludeKind(t *testing.T) {
 
 The next method that drifts the same way fails this test on first commit.
 
-**Regression Invariant check for class-invariant tests:** after GREEN, apply the revert-and-restore proof to each table row — particularly the previously-broken method and at least one currently-correct sibling. Both must fail when the class invariant is broken and pass when it is restored.
+**Regression Invariant check for class-invariant tests:** after GREEN, apply the revert-and-restore proof to the table-driven test: revert only the previously-broken method so the overall test fails (its row fails; correct siblings still pass), then restore it so the full table passes again. Optionally, temporarily introduce the same invariant violation into a known-good sibling to prove its row would also fail, then restore both and confirm the table is green.
 
 ## Common Rationalizations
 
