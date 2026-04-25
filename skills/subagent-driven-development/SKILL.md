@@ -184,8 +184,9 @@ Agent tool:
        - DM team lead: "Task N fully approved"
 
     ## Team Conventions
-    See `agents/team-conventions.md` for adversarial framing, bug-class
-    checklist, per-finding inline output format, and verdict vocabulary.
+    See `agents/team-conventions.md` for adversarial framing and the
+    per-finding inline output format. For the bug-class checklist and
+    verdict vocabulary, see `skills/requesting-code-review/SKILL.md`.
 ```
 
 **4. Monitor and steer:**

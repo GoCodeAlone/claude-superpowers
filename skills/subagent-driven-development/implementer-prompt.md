@@ -29,5 +29,6 @@ Task tool (general-purpose):
 
     When complete, DM spec-reviewer that the task is ready for the
     spec-compliance gate.
-    DM team-lead with PR link when CI green and reviewer at SHIP-IT.
+    DM team-lead that the task is ready for merge, including the branch
+    name and latest commit, when CI is green and reviewer is at SHIP-IT.
 ```
