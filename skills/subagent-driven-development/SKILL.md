@@ -108,10 +108,12 @@ Agent tool:
     Reference: <design-doc-path>
 
     ## Team Conventions
-    See `agents/team-conventions.md` for discipline rules: TDD with
-    regression-invariant proof, verification-before-completion,
-    runtime-launch-validation when triggers fire, version-skew audit,
-    self-review checklist, code-review request via adversarial brief.
+    See `agents/team-conventions.md` for all implementer discipline rules
+    (TDD with regression-invariant proof, verification-before-completion,
+    runtime-launch-validation when triggers fire, version-skew audit per
+    `skills/finishing-a-development-branch/SKILL.md` Step 1c,
+    self-review checklist, code-review request via adversarial brief).
+    All rules are defined in that file, not repeated here.
 
     ## Important
     - Work in the project directory: <working-dir>
