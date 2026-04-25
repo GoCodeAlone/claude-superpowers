@@ -18,8 +18,11 @@ Diff with one new method that omits an arg every sibling method sets.
 
 1. Write a generic diff that demonstrates a bug class from the checklist.
 2. Capture the dispatch text the implementer would have received.
-3. Capture both old and new prompt outputs (run the actual reviewer subagent
-   under each prompt; do not synthesize). If a result file was author-written
-   rather than captured from a live run, add `<!-- synthesized -->` as the
-   first line so readers know it is illustrative, not a recorded output.
+3. For `expected-old-result.md` and `expected-new-result.md`: prefer real
+   transcripts captured from live subagent runs under each prompt. When a
+   live run hasn't been captured yet (e.g., for initial demonstrations),
+   author-written results are acceptable — but MUST be clearly labeled with
+   `<!-- synthesized -->` as the first line so readers know the output is
+   illustrative, not a recorded run. Replace synthesized results with live
+   transcripts as capacity allows.
 4. The new prompt MUST flag where the old approved.

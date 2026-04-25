@@ -48,10 +48,10 @@ Expected: skill content visible. Note the existing sections.
 
 Sections to add (in order at top of skill, after frontmatter):
 1. "Reviewer brief — adversarial framing"
-2. "Bug-class checklist (must scan)"
-3. "Output format (per-finding, inline at file:line)"
-4. "Iterative loop protocol"
-5. "Scope-vs-dispatch compliance gate (run first)"
+2. "Scope-vs-dispatch compliance gate (RUN FIRST)" ← runs before bug-class scan
+3. "Bug-class checklist (must scan)"
+4. "Output format (per-finding, inline at file:line)"
+5. "Iterative loop protocol"
 6. "Verdict vocabulary"
 
 No commit; preparation only.

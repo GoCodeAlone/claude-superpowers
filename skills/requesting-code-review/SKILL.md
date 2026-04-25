@@ -13,6 +13,11 @@ The reviewer subagent's instructions must use **adversarial framing**, not valid
 
 > Find at least three things wrong with this code, even if they seem minor. Bias toward finding issues. You are NOT validating that the code matches the dispatch — you are looking for bugs the original author missed.
 
+**Clarification:** "NOT validating that the code matches the dispatch" applies to the **bug-class scan** phase — the reviewer's mindset when hunting for bugs should be adversarial, not confirmatory. This is distinct from the **scope-vs-dispatch compliance gate** (see next section), which is a separate structural check that runs first and explicitly compares the diff against the dispatch. Both mandates are valid; they apply to different phases:
+
+1. Compliance gate (runs first) — structural check: did the PR deliver what was asked?
+2. Bug-class scan (runs second) — adversarial hunt: what bugs did the author miss?
+
 Why: the same base model produces dramatically different output under "find what's wrong" vs. "review the work." Validation framing biases toward approval; adversarial framing biases toward rigor. The shift is mechanical and reproducible.
 
 **Forbidden phrasing**: "review the work", "verify the implementation matches the plan", "confirm correctness", any prompt that implies the reviewer's job is to validate. These produce sign-offs that miss real bugs.
