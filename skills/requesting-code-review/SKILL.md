@@ -11,7 +11,7 @@ The reviewer subagent's instructions must use **adversarial framing**, not valid
 
 **Required prompt phrasing in every dispatch:**
 
-> Find at least three things wrong with this code, even if they seem minor. Bias toward finding issues. You are NOT validating that the code matches the dispatch — you are looking for bugs the original author missed.
+> Find at least three things wrong with this code, even if they seem minor — or, if fewer than three are found, explicitly document every bug-class check you ran and what you found (or didn't). Bias toward finding issues. You are NOT validating that the code matches the dispatch — you are looking for bugs the original author missed.
 
 **Clarification:** "NOT validating that the code matches the dispatch" applies to the **bug-class scan** phase — the reviewer's mindset when hunting for bugs should be adversarial, not confirmatory. This is distinct from the **scope-vs-dispatch compliance gate** (see next section), which is a separate structural check that runs first and explicitly compares the diff against the dispatch. Both mandates are valid; they apply to different phases:
 
@@ -247,7 +247,8 @@ Verdict: REQUEST-CHANGES — one Important finding (missing progress indicators)
 You: [Fix progress indicators, extract constant, push new commit]
 
 [Dispatch superpowers:code-reviewer subagent — round 2, full diff re-read, same verbatim brief]
-  (same diff range $BASE_SHA..$HEAD_SHA — now includes the fix commits)
+  HEAD_SHA=$(git rev-parse HEAD)  # re-run: HEAD now points to the new fix commit(s)
+  (diff range $BASE_SHA..$HEAD_SHA — same base, new tip that includes the fix commits)
 
 [Subagent returns]:
 

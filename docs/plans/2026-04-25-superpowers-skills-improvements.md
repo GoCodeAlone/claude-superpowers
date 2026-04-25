@@ -318,7 +318,7 @@ git commit -m "skill(requesting-code-review): scope-vs-dispatch compliance gate"
 **Files:**
 - Modify: `skills/requesting-code-review/SKILL.md`
 
-**Step 1: Insert at the bottom of the skill (after the existing existing content)**
+**Step 1: Insert at the bottom of the skill (after the existing content)**
 
 ```markdown
 ## Verdict vocabulary
@@ -469,8 +469,9 @@ Diff with one new method that omits an arg every sibling method sets.
 
 1. Write a generic diff that demonstrates a bug class from the checklist.
 2. Capture the dispatch text the implementer would have received.
-3. Capture both old and new prompt outputs (run the actual reviewer subagent
-   under each prompt; do not synthesize).
+3. Capture both old and new prompt outputs. Prefer real transcripts from live
+   subagent runs. Author-written (synthesized) results are acceptable for
+   initial demonstrations if labeled `<!-- synthesized -->` as the first line.
 4. The new prompt MUST flag where the old approved.
 ```
 
