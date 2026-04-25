@@ -23,6 +23,7 @@ Triggered by changes to any of:
 - Application-startup configuration (config files read at boot)
 - Database migrations
 - Plugin / extension loading paths
+- Interface boundary changes (new method, field, event type, or hook crossing a producer→consumer or caller→callee boundary)
 
 Triggered NOT by:
 

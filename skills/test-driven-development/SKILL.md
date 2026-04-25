@@ -393,13 +393,13 @@ A test passing proves the symptom is gone — not that the root cause is fixed.
 
 **The shortcut-bias trap:** an implementer adds a nil-guard, a special case, or a retry loop. Tests go green. The underlying defect is still present — only its visible expression is suppressed. Future changes re-expose it.
 
-**The check:** after GREEN, ask — "if I revert only the root-cause fix and keep the symptom suppressor, would the test still pass?" If yes, the test is not a regression gate for the actual bug. Write a test that directly targets the root cause.
+**The check:** apply the revert-and-restore proof (per the Verify Regression Invariant step above, between GREEN and REFACTOR): revert only the root-cause fix while keeping the symptom suppressor, then run the tests. If the tests still pass, the test does not gate the actual bug — rewrite it to target the root cause directly, then restore the fix and confirm GREEN.
 
 **Examples:**
 - A function returns nil when called with malformed input. The fix adds `if result == nil { return defaultValue }` at the call site. The test passes. The function still returns nil — the callee is broken, but the caller hides it. A proper test exercises the function directly and asserts it never returns nil for valid inputs.
 - A concurrent write causes a data race. The fix adds a sleep before the assertion. The test passes (sometimes). The race still exists. A proper fix removes the race; a proper test uses synchronization primitives, not timing.
 
-**Regression-invariant corollary:** during the revert-and-restore proof (RED phase), verify the test fails because of the root cause, not a side-effect. If you cannot identify which line of production code causes the failure, the test is not precise enough.
+**Regression-invariant corollary:** during the revert-and-restore proof (Verify Regression Invariant step, between GREEN and REFACTOR), verify the test fails because of the root cause, not a side-effect. If you cannot identify which line of production code causes the failure, the test is not precise enough.
 
 ## Red Flags - STOP and Start Over
 
