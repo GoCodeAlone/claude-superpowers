@@ -37,6 +37,45 @@ The reviewer must explicitly scan for each of these bug classes on every diff. T
 
 For each finding, the reviewer cites the bug class explicitly. This makes patterns visible across reviews and lets the team identify recurring weaknesses.
 
+## Output format (per-finding, inline at file:line)
+
+Every finding is one block in this shape:
+
+```
+### Finding N — <one-line summary>
+- **Severity**: Critical | Important | Minor | Nit
+- **Bug class**: <from the checklist or "other (describe)">
+- **Location**: `path/to/file.ext:line`
+- **What's wrong**: <one sentence>
+- **Why it matters**: <one sentence — what breaks, when, for whom>
+- **Suggested fix**: <one sentence or short snippet>
+```
+
+**Forbidden output styles:**
+- Prose summary as the primary review ("the changes look good overall, with a few small issues...")
+- Findings without `file:line` references
+- Findings without an explicit bug class
+- Findings without a severity tier
+- Mixing multiple findings into one block
+
+**Why:** prose summaries glide over specifics. The same reviewer producing a paragraph approves bugs they would have flagged if forced into a per-finding format. Inline anchored output reproduces what a focused external reviewer naturally produces.
+
+## Iterative loop protocol
+
+One review pass is insufficient. After implementer addresses findings, the reviewer **re-reads the new diff from scratch** and runs the full bug-class checklist again. New issues commonly surface — fixes introduce new bugs, fixes only address the symptom, or the implementer interprets the finding too narrowly.
+
+Loop:
+
+1. Implementer dispatches review.
+2. Reviewer scans (bug-class checklist) → produces findings.
+3. Implementer addresses each finding, pushes new commits.
+4. **Reviewer re-reads the new diff (not just the diff-of-diffs)** and runs the full checklist again.
+5. Repeat until reviewer's verdict is SHIP-IT with no Critical or Important findings.
+
+Maximum loops: 5 per PR. If the reviewer still finds Critical/Important issues after round 5, the verdict becomes REVERT-AND-REWRITE; the implementer takes a different approach.
+
+**The loop runs even if intermediate rounds had findings of Minor severity only.** The bar is "find what's wrong" — Minor findings don't trigger automatic re-review, but the human or orchestrator inspects them before merge.
+
 Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
 
 **Core principle:** Review early, review often.
