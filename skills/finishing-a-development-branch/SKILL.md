@@ -89,13 +89,13 @@ Stop. Don't proceed to Step 2.
 
 **If tests pass:** Continue to Step 1b.
 
-### Step 1b: Runtime Launch Verification (conditional)
+### Step 1b: Runtime Launch Validation (conditional)
 
 **Trigger:** the diff includes any of:
 
 - Build configuration (Dockerfile, build script, CI build steps)
 - Deployment configuration (compose, Kubernetes manifests, deployment workflows)
-- Version pins on tooling, runtime, libraries
+- Version pins on runtime, libraries, or build/launch-affecting tooling — excludes dev-only tooling such as linters and formatters
 - Application-startup configuration (config files read at boot)
 - Database migrations
 - Plugin / extension loading paths
@@ -108,7 +108,7 @@ If NOT triggered (pure logic refactor, doc-only, test-only): skip this step.
 
 ### Step 1c: Version-Skew Audit (conditional)
 
-**Trigger:** the diff updates any version pin (any "version: vX.Y.Z", "image: foo:vX.Y.Z", or `<package>@vX.Y.Z`).
+**Trigger:** the diff updates a non-dev-only version pin (any "version: vX.Y.Z", "image: foo:vX.Y.Z", or `<package>@vX.Y.Z`) — excludes dev-only tooling pins (linters, formatters) where skew is generally benign.
 
 Action:
 
@@ -120,8 +120,6 @@ Action:
    (4 minor versions ahead). Compatibility verified via: <link or note>.
    ```
 4. Resolve before merging — bump the lagging pin, OR state explicitly why the skew is intentional and safe.
-
-Action does NOT apply to: dev-only tooling pins (linters, formatters), where skew is generally benign.
 
 ### Step 2: Determine Base Branch
 

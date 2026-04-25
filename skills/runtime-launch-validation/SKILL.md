@@ -19,7 +19,7 @@ Triggered by changes to any of:
 
 - Build configuration (Dockerfile, build script, CI build steps)
 - Deployment configuration (compose, Kubernetes manifests, deployment workflows)
-- Version pins on tooling, runtime, libraries
+- Version pins on runtime, libraries, or build/launch-affecting tooling (images, CI build tools, runtime runtimes) — excludes dev-only tooling such as linters and formatters
 - Application-startup configuration (config files read at boot)
 - Database migrations
 - Plugin / extension loading paths
@@ -29,7 +29,8 @@ Triggered NOT by:
 - Pure refactors of internal logic
 - Documentation
 - Test-only changes
-- Dependency upgrades that are caught by existing tests with no runtime configuration impact
+- Dev-only tooling pin upgrades (linters, formatters) that cannot affect startup or launch behavior
+- Library version bumps where the upgraded package has no runtime configuration impact AND existing tests already cover the new behavior
 
 ## Per-change-class instructions
 
@@ -91,4 +92,4 @@ The constraint is not an excuse to skip; it's a request for help.
 
 - `skills/verification-before-completion/SKILL.md` — general evidence-before-assertion principle
 - `skills/finishing-a-development-branch/SKILL.md` — Step 1b invokes this skill
-- `skills/writing-plans/SKILL.md` — per-change-class verification table cross-references this skill
+- `skills/writing-plans/SKILL.md` — related planning guidance for per-change-class verification

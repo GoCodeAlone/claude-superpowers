@@ -1,6 +1,6 @@
 # Missing-pin runtime skew
 
-A repository pins `tooling` at v1.2 in build pipeline yaml. The
+A repository pins `tooling` at v1.2 in build pipeline YAML. The
 runtime depends on `engine`, which is at v1.6 elsewhere in the repo.
 
 `tooling@v1.2` and `engine@v1.6` use incompatible plugin discovery
