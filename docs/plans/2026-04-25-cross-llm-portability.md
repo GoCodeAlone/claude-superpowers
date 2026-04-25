@@ -29,6 +29,19 @@ After alignment-check PASS, **STOP**. Do not invoke `superpowers:subagent-driven
 - Commit messages describe **what changed**, not which review round.
 - Run the grep guard from Task 1 before opening every PR.
 
+## Group I — already portable (no rewrite needed)
+
+The following six skills were audited and contain no Claude-only tool names or model-tier brand names. They should stay clean once the grep guard from Task 1 lands:
+
+- `test-driven-development`
+- `systematic-debugging`
+- `verification-before-completion`
+- `using-git-worktrees`
+- `runtime-launch-validation`
+- `requesting-code-review`
+
+The grep guard (Task 1) and the cross-LLM coverage table (Task 18) verify these remain clean. No rewrite tasks are scheduled for them. If the guard reports a finding in any of these files, escalate before patching — it indicates an unintended regression in another in-flight PR.
+
 ## Group structure (suggested PR boundaries)
 
 The plan is grouped so an orchestrator can dispatch each group as a self-contained PR. The implementation team can choose to combine adjacent groups if review bandwidth allows.
@@ -38,7 +51,7 @@ The plan is grouped so an orchestrator can dispatch each group as a self-contain
 | A. Infrastructure | 1, 2, 3 | small | PR-A: shared infra (model tiers + grep guard + writing-skills marker convention) |
 | B. Group II rewrites | 4, 5, 6, 7, 8 | small × 5 | PR-B: moderate-bleed skills (alignment-check, pr-monitoring, receiving-code-review, finishing-a-development-branch, brainstorming) |
 | C. Group III rewrites | 9, 10, 11, 12, 13, 14 | medium × 6 | PR-C: heavy-bleed skills (subagent-driven-development, dispatching-parallel-agents, writing-plans, using-superpowers, executing-plans, writing-skills extension) |
-| D. Documentation | 15, 16, 17 | small | PR-D: README + INSTALL.md updates |
+| D. Documentation | 15, 15b, 15c, 16, 17 | small | PR-D: README + INSTALL.md updates |
 | E. Coverage table | 18 | small | PR-E: tests/cross-llm-coverage.md |
 
 PRs A and E are the bookend infrastructure work. B, C, D are content edits and can run in parallel after A lands.
@@ -258,6 +271,14 @@ without a marker apply to every host.
 Markers are angle-bracket-shaped so they read like markdown elements. Comma-
 separated host lists are allowed inside the opening tag. Nested markers are not
 allowed.
+
+**Why angle-bracket form, not HTML-comment form?** We considered
+`<!-- host: claude-code -->` and rejected it. The angle-bracket form is
+shorter, visible in PR diffs and skill author reviews, and renders in any
+markdown viewer as plain text or an unknown element without breaking layout.
+The HTML-comment form would render fully invisibly, which is a footgun:
+authors can write host-conditional content and not notice the marker is
+mis-spelled or unclosed. Visibility is the safer trade-off.
 
 ### Recognised host names
 
@@ -951,6 +972,83 @@ Expected: original heading intact; new section integrates cleanly.
 ```bash
 git add README.md
 git commit -m "docs: add cross-LLM compatibility matrix to README"
+```
+
+**Verification class:** Documentation.
+
+---
+
+## Task 15b: Update host-specific READMEs (`docs/README.codex.md`, `docs/README.opencode.md`)
+
+**Files:**
+- Modify: `docs/README.codex.md`
+- Modify: `docs/README.opencode.md`
+
+**Step 1: `docs/README.codex.md` — host declaration + role vocabulary**
+
+After the existing install section, append a "Cross-LLM behavior" subsection:
+
+```markdown
+## Cross-LLM behavior
+
+Skills in this repo are written to work across hosts. To make Codex-specific
+sections resolve correctly, add to your `~/.codex/AGENTS.md`:
+
+```
+Host: codex
+```
+
+Model tiers cited in skills (`fast`, `balanced`, `frontier`,
+`coding-specialist`) resolve to Codex models per `agents/model-tiers.md`.
+The grep guard at `tests/skill-content-grep.sh` keeps host-neutral skill text
+free of Claude-specific tokens.
+```
+
+**Step 2: `docs/README.opencode.md` — same**
+
+Append the equivalent section, with `Host: opencode` and a note that OpenCode
+uses host-pass-through model selection (i.e. whichever model the user has
+configured).
+
+**Step 3: Commit**
+
+```bash
+git add docs/README.codex.md docs/README.opencode.md
+git commit -m "docs: cross-LLM behavior notes for Codex + OpenCode READMEs"
+```
+
+**Verification class:** Documentation.
+
+---
+
+## Task 15c: Update `agents/team-conventions.md`
+
+**Files:**
+- Modify: `agents/team-conventions.md`
+
+**Step 1: Add a "Modes" paragraph**
+
+After the file's introduction (around current line 6), insert:
+
+```markdown
+## Modes
+
+Team conventions apply identically in both execution modes:
+
+- **Sequential Mode** (all hosts): orchestrator dispatches one sub-agent at
+  a time; reviewers run between tasks.
+- **Agent Teams Mode** (Claude Code only, opt-in): persistent named teammates
+  in a shared chat surface; reviewers run in parallel after each task.
+
+Implementer, spec-reviewer, and code-reviewer roles are the same in both
+modes. The conventions below apply to both.
+```
+
+**Step 2: Commit**
+
+```bash
+git add agents/team-conventions.md
+git commit -m "docs(team-conventions): note Sequential and Agent Teams mode applicability"
 ```
 
 **Verification class:** Documentation.
