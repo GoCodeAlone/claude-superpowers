@@ -49,16 +49,9 @@ The autonomous flag propagates through the entire pipeline: writing-plans → al
 
 ## Design-only mode
 
-Design-only mode is active if ANY of: `--design-only` flag, plan YAML frontmatter `design-only: true`, or propagation from brainstorming. If signals conflict, the most-restrictive wins (i.e., design-only takes effect). Default is execution dispatched.
+Design-only mode is active if ANY of: `--design-only` flag or propagation from brainstorming. If signals conflict, the most-restrictive wins (i.e., design-only takes effect). Default is execution dispatched.
 
-```yaml
----
-design-only: true
----
-# [Feature Name] Implementation Plan
-```
-
-Frontmatter (when present) appears BEFORE the `# [Feature Name] Implementation Plan` H1 — the H1 is still required as the first non-frontmatter line.
+Do not add YAML frontmatter to signal design-only mode. Saved plan documents must keep the standard format so downstream skills can parse them reliably, with `# [Feature Name] Implementation Plan` as the first line of the file.
 
 **Behavior in design-only mode:**
 
@@ -97,7 +90,7 @@ When writing a plan task, the verification step must match the change class. A g
 
 These examples are illustrative minimums; per-task `Expected:` fields must be literal values the check can assert against.
 
-Plan tasks falling in any class except "internal logic refactor" or "documentation / comments" must include a runtime-validation step in their TDD breakdown — typically by invoking `runtime-launch-validation` from `finishing-a-development-branch` Step 1b.
+Every plan task must include the verification step appropriate to its change class, as defined in the table above. For tasks whose `finishing-a-development-branch` Step 1b trigger conditions are met, include that runtime-launch-validation step in the TDD breakdown as well; otherwise, use the class-appropriate verification without implying Step 1b is required.
 
 The plan author writes the expected output literally — not "passes tests" but "logs `engine ready` within 10 seconds and `/healthz` returns 200".
 
