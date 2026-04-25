@@ -17,7 +17,7 @@ Invoked automatically by `finishing-a-development-branch` in autonomous mode aft
 
 ## The Process
 
-Spawn a background `balanced`-tier agent that monitors the PR in a loop following the Monitor Loop below.
+Spawn a background `balanced`-tier agent that monitors the PR in a loop following the Monitor Loop procedure.
 
 <host: claude-code>
 Use the Agent tool to run the monitor in the background:
