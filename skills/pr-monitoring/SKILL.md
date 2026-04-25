@@ -92,61 +92,14 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
 ````
 </host>
 
-## Monitor Loop
+<host: codex, opencode, cursor>
 
-Repeat until exit conditions met:
+Use your host's equivalent mechanism to periodically poll `gh pr checks <number>` and
+`gh api repos/<owner>/<repo>/pulls/<number>/comments` in a loop, fixing failures and
+responding to review comments until all checks pass and no unresolved comments remain.
 
-### 1. Check CI Status
+</host>
 
-```bash
-gh pr checks <number> --json name,state,conclusion
-```
-
-**If any check fails:**
-a. Read the failure logs: `gh run view <run-id> --log-failed`
-b. Identify the root cause
-c. Fix the issue in the codebase
-d. Run the relevant tests locally to verify
-e. Commit and push:
-   ```bash
-   git add <specific-files>
-   git commit -m "fix: address CI failure in <check-name>"
-   git push
-   ```
-f. Wait 60s, re-check
-
-**Safety:** Max 5 fix attempts per unique CI failure. After 5, comment on the PR:
-"Unable to automatically resolve CI failure in <check-name> after 5 attempts. Manual intervention needed."
-
-### 2. Check Review Comments
-
-```bash
-gh api repos/<owner>/<repo>/pulls/<number>/comments --jq '.[] | select(.position != null) | {id, body, path, line: .original_line, user: .user.login}'
-gh api repos/<owner>/<repo>/pulls/<number>/reviews --jq '.[] | select(.state == "CHANGES_REQUESTED") | {id, body, user: .user.login}'
-```
-
-**If new unresolved comments found:**
-a. Read the comment carefully
-b. Implement the requested change
-c. Run tests to verify
-d. Commit and push
-e. Reply to the comment: "Addressed in <commit-sha>"
-
-**Safety:** Max 3 revision rounds per review comment. After 3, reply:
-"I've attempted to address this feedback but may need clarification. Flagging for manual review."
-
-### 3. Check Exit Conditions
-
-Exit when ALL of:
-- All CI checks passing (green)
-- No unresolved review comments
-- No pending "changes requested" reviews
-
-On exit, report final status.
-
-### 4. Wait Between Checks
-
-Sleep 60 seconds between check cycles. Do not poll more frequently.
 
 ## Safety Limits
 

@@ -59,7 +59,7 @@ digraph brainstorming {
 **Understanding the idea:**
 - Check out the current project state first (files, docs, recent commits)
 - Ask questions using adaptive batching — group related questions to reduce round-trips:
-  - **First batch:** 2–3 questions covering purpose, constraints, scope, and tech choices
+  - **First batch:** covers purpose, constraints, scope, and tech choices
   - **Follow-ups:** Targeted single questions based on interesting or ambiguous answers
 
 <host: claude-code>
