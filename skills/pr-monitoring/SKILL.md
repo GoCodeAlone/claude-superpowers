@@ -17,10 +17,11 @@ Invoked automatically by `finishing-a-development-branch` in autonomous mode aft
 
 ## The Process
 
-Spawn a background agent that monitors the PR in a loop:
+Spawn a background `balanced`-tier agent that monitors the PR in a loop.
 
+<host: claude-code>
 ```
-Agent tool (general-purpose, model: sonnet, run_in_background: true):
+Agent tool (general-purpose, model: balanced, run_in_background: true):
   description: "Monitor PR #N for CI and reviews"
   prompt: |
     You are monitoring PR #<number> on <repo> and automatically fixing issues.
@@ -88,6 +89,8 @@ Agent tool (general-purpose, model: sonnet, run_in_background: true):
     ### 4. Wait Between Checks
 
     Sleep 60 seconds between check cycles. Do not poll more frequently.
+```
+</host>
 
 ## Safety Limits
 

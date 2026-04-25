@@ -58,11 +58,20 @@ digraph brainstorming {
 
 **Understanding the idea:**
 - Check out the current project state first (files, docs, recent commits)
-- Ask questions using adaptive batching with AskUserQuestion:
-  - **First form:** Group 2-4 related questions covering purpose, constraints, scope, and tech choices
-  - **Follow-ups:** Targeted single questions based on interesting or ambiguous answers from previous forms
+- Ask questions using adaptive batching — group related questions to reduce round-trips:
+  - **First batch:** 2–4 questions covering purpose, constraints, scope, and tech choices
+  - **Follow-ups:** Targeted single questions based on interesting or ambiguous answers
+
+<host: claude-code>
   - Use multiple choice options when possible (AskUserQuestion supports 2-4 options per question)
   - AskUserQuestion supports up to 4 questions per form — use this to reduce round-trips
+</host>
+
+<host: codex, opencode, cursor>
+  - Present options as a numbered list and ask the user to reply with the chosen number
+  - Group no more than 3 questions per turn to avoid overloading the chat
+</host>
+
 - Focus on understanding: purpose, constraints, success criteria
 
 **Exploring approaches:**
