@@ -47,6 +47,13 @@ them.
   (or REVERT-AND-REWRITE after max rounds).
 - Reflexive approval is forbidden.
 
+## Modes
+
+Team conventions apply identically in both execution modes:
+
+- **Sequential Mode** (all hosts): orchestrator dispatches one sub-agent at a time; reviewers run between tasks.
+- **Agent Teams Mode** (Claude Code only, opt-in): persistent named teammates in a shared chat surface; reviewers run in parallel after each task.
+
 ## All agents
 
 - DRY: when re-stating a convention, prefer "per `<skill>`" over

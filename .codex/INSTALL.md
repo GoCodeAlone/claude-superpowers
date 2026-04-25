@@ -10,7 +10,7 @@ Enable superpowers skills in Codex via native skill discovery. Just clone and sy
 
 1. **Clone the superpowers repository:**
    ```bash
-   git clone https://github.com/obra/superpowers.git ~/.codex/superpowers
+   git clone https://github.com/GoCodeAlone/claude-superpowers.git ~/.codex/superpowers
    ```
 
 2. **Create the skills symlink:**
@@ -65,3 +65,16 @@ rm ~/.agents/skills/superpowers
 ```
 
 Optionally delete the clone: `rm -rf ~/.codex/superpowers`.
+
+## Cross-LLM Behavior
+
+Superpowers skills use `<host: claude-code>` blocks to gate Claude Code-only content. Codex skips those blocks automatically; no configuration needed.
+
+To enable host-conditional logic inside skills (so skills can adapt behavior per host), declare your host in `~/.codex/AGENTS.md`:
+
+```markdown
+# Superpowers host declaration
+Host: codex
+```
+
+Add this block once. Skills that inspect the host context will use it to pick the right execution path.
