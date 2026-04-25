@@ -7,7 +7,7 @@ brainstorming --design-only --topic "feature X"
 ```
 
 Expected behavior:
-- brainstorming runs full design flow (context → questions → approaches → design doc → commit).
+- brainstorming runs full design flow (context → questions → approaches → present design → user approves → write design doc → commit).
 - brainstorming hands off to writing-plans WITH `--design-only` set.
 - writing-plans runs the full plan flow (writes plan, commits).
 - writing-plans invokes alignment-check.
@@ -26,7 +26,7 @@ Verification:
 brainstorming --topic "feature X"
 ```
 
-- brainstorming runs full design flow.
+- brainstorming runs full design flow (context → questions → approaches → present design → user approves → write design doc → commit).
 - brainstorming hands off to writing-plans (no flag).
 - writing-plans runs, invokes alignment-check, PASS.
 - writing-plans invokes subagent-driven-development → execution begins.

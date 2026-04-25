@@ -57,8 +57,9 @@ When the orchestrator wants the pipeline to halt after alignment-check (no execu
 2. Commit the plan as normal.
 3. Invoke `superpowers:alignment-check` as normal.
 4. **On alignment PASS: STOP.** Do NOT invoke subagent-driven-development.
-5. **On alignment FAIL:** revise the plan based on drift items, re-check (max 2 cycles) — same as default Autonomous Mode. After revision, if PASS, still STOP (do not proceed to execution). On persistent FAIL (after max 2 cycles), escalate to user with unresolved drift summary — no execution dispatched regardless.
-6. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `subagent-driven-development` directly.
+5. **On alignment FAIL:** revise the plan based on drift items, re-check (max 2 cycles) — same as default Autonomous Mode. After revision, if PASS, still STOP (do not proceed to execution).
+6. **On persistent FAIL after the max 2 cycles:** escalate to the user with an unresolved drift summary — same as Autonomous Mode step 5. Do NOT invoke subagent-driven-development or dispatch any execution.
+7. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `subagent-driven-development` directly once alignment issues are resolved.
 
 **When to use:**
 
@@ -75,7 +76,7 @@ When writing a plan task, the verification step must match the change class. A g
 | Change class | Verification | Expected output |
 |---|---|---|
 | Internal logic refactor | unit tests | all green |
-| Schema migration | apply against ephemeral DB; down + re-apply | no orphaned tables; `migration_versions` shows applied |
+| Schema migration | apply against ephemeral DB; down + re-apply | no orphaned tables; migration tool reports applied / schema version updated |
 | API endpoint | exercise endpoint with representative inputs (curl, gRPC, etc.) | HTTP 200 + expected JSON body |
 | Build pipeline / Dockerfile | build artifact + launch + healthcheck (see `runtime-launch-validation`) | transcript captured; exit 0 |
 | Version pin update | run version-skew audit + relaunch artifact | transcript captured; audit clean |
