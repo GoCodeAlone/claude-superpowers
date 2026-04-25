@@ -113,8 +113,8 @@ Markers use angle-bracket tag syntax that most markdown renderers treat as
 unknown HTML elements and render harmlessly. Comma-separated host lists are
 allowed inside the opening tag, but a block tagged with multiple hosts (e.g.
 `<host: codex, claude-code>`) is NOT exempt from the guard — the guard only
-skips blocks tagged exclusively with `claude-code`. Nested markers are not
-allowed.
+skips blocks tagged exclusively with `claude-code`. Nesting markers is not
+supported; behaviour with nested blocks is undefined.
 
 **Why angle-bracket form, not HTML-comment form?** The angle-bracket form is
 visible in PR diffs and skill-author reviews. The HTML-comment form
@@ -151,6 +151,7 @@ slash command switches between active threads.
 </host>
 ```
 
+<host: claude-code>
 ### Forbidden tokens outside markers
 
 The grep guard at `tests/skill-content-grep.sh` rejects these tokens outside
@@ -159,6 +160,7 @@ a `<host: claude-code>` block:
 `TodoWrite`, `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`,
 `TeamCreate`, `TeamDelete`, `SendMessage`, `EnterPlanMode`,
 `Sonnet`, `Opus`, `Haiku` (and their lowercase forms `sonnet`, `opus`, `haiku`).
+</host>
 
 Use role names (`fast` / `balanced` / `frontier` / `coding-specialist`) for
 model tiers and resolve them through `agents/model-tiers.md`.
