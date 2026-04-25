@@ -349,7 +349,7 @@ The next method that drifts the same way fails this test on first commit.
 
 ## When the Change Crosses an Interface Boundary
 
-An interface boundary is any point where two independent components exchange data or control: producer→consumer, caller→callee, plugin→host, sender→handler (see `agents/boundary-classes.md` for the canonical list with examples). When a change touches both sides of such a boundary, both sides require test coverage — and at least one test must exercise the full crossing end-to-end.
+An interface boundary is any point where two independent components exchange data or control: producer→consumer, caller→callee, plugin→host, sender→handler (see `agents/boundary-classes.md` for the canonical list with examples). When a change introduces or modifies a contract across such a boundary, both sides require test coverage — and at least one test must exercise the full crossing end-to-end. The heuristic below helps identify when this applies, including cases where only one side has been modified so far.
 
 **Why independent unit tests on each side are insufficient:** each side's unit test mocks the other. If the contract between them drifts (wrong field name, wrong type, wrong call sequence), both unit tests continue to pass while the integration is broken. The end-to-end test is the only gate that catches contract drift.
 
