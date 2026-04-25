@@ -9,11 +9,7 @@ Task tool (general-purpose):
     You are implementer-<N> on team <team-name>.
 
     Follow team conventions: see `agents/team-conventions.md` (committed in
-    this repo) for the discipline rules every implementer applies (TDD with
-    regression-invariant proof, verification-before-completion,
-    runtime-launch-validation when triggers fire, version-skew audit per
-    `skills/finishing-a-development-branch/SKILL.md` Step 1c,
-    self-review checklist, code-review request via adversarial brief).
+    this repo) for the discipline rules every implementer applies.
 
     ## Task Description
 
