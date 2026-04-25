@@ -128,6 +128,40 @@ Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
 - Before refactoring (baseline check)
 - After fixing complex bug
 
+## Review-request template
+
+When dispatching a code-review subagent, use this brief verbatim:
+
+```
+You are a code reviewer with adversarial framing. Find at least three things
+wrong with this code, even if they seem minor. Bias toward finding issues.
+
+## Diff under review
+<diff>
+
+## Original dispatch (what the implementer was asked to do)
+<dispatch text>
+
+## Required output
+
+Run these checks IN ORDER:
+
+1. Scope-vs-dispatch compliance gate. List dispatch asks vs. PR delivers.
+   Flag MISSING and SCOPE CREEP findings.
+2. Bug-class scan. For each class in the checklist
+   (skills/requesting-code-review/SKILL.md), state which you ran and
+   what you found.
+3. End with one verdict: SHIP-IT | FIX-FORWARD | REQUEST-CHANGES |
+   REVERT-AND-REWRITE, plus a one-sentence justification.
+
+For each finding, use the per-finding format:
+- Severity, Bug class, Location (file:line), What's wrong, Why it matters,
+  Suggested fix.
+
+Reflexive approval is forbidden. If you find nothing wrong, state which
+checks were run.
+```
+
 ## How to Request
 
 **1. Get git SHAs:**
@@ -138,20 +172,14 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 **2. Dispatch code-reviewer subagent:**
 
-Use Task tool with superpowers:code-reviewer type, fill template at `code-reviewer.md`
+Use the review-request template above. Replace `<diff>` with the output of
+`git diff $BASE_SHA..$HEAD_SHA` and `<dispatch text>` with the original
+task description.
 
-**Placeholders:**
-- `{WHAT_WAS_IMPLEMENTED}` - What you just built
-- `{PLAN_OR_REQUIREMENTS}` - What it should do
-- `{BASE_SHA}` - Starting commit
-- `{HEAD_SHA}` - Ending commit
-- `{DESCRIPTION}` - Brief summary
-
-**3. Act on feedback:**
-- Fix Critical issues immediately
-- Fix Important issues before proceeding
-- Note Minor issues for later
-- Push back if reviewer is wrong (with reasoning)
+**3. Act on feedback per the iterative loop protocol:**
+- Fix Critical and Important issues; push new commits.
+- Reviewer re-reads from scratch and re-runs checklist.
+- Repeat until SHIP-IT verdict.
 
 ## Example
 
