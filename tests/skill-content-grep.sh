@@ -16,16 +16,20 @@ cd "$REPO_ROOT"
 # Tokens that must not appear in host-neutral skill text.
 # These are Claude-Code-specific tool names or model-brand names that make
 # skills non-portable to other hosts.
+# Model-brand names are listed in both title-case and lowercase forms because
+# skills may reference them in prose ("Use Sonnet") or YAML ("model: sonnet").
 TOKENS=(
   TodoWrite TaskCreate TaskUpdate TaskList TaskGet
   TeamCreate TeamDelete SendMessage EnterPlanMode
   Sonnet Opus Haiku
+  sonnet opus haiku
 )
 
 # Files where these tokens are explicitly permitted.
+# Note: tests/ is not scanned by the find command below, so only add paths
+# under skills/ or agents/ here.
 ALLOWED_FILES=(
   "agents/model-tiers.md"
-  "tests/skill-content-grep.sh"
 )
 
 fail=0
@@ -44,19 +48,19 @@ find skills agents -type f -name '*.md' -print0 \
 
       # Single-pass AWK:
       #   - Tracks original line numbers so error output cites source locations.
-      #   - Skips <host: ...> blocks where "claude-code" appears anywhere in the
-      #     (possibly comma-separated) host list, e.g.:
+      #   - Skips ONLY exclusive <host: claude-code> blocks (no other hosts).
+      #     A block like <host: codex, claude-code> is NOT skipped because its
+      #     content is also shown to codex users who must not see Claude-only tokens.
       #       <host: claude-code>          → skip
-      #       <host: codex, claude-code>   → skip
+      #       <host: codex, claude-code>   → do NOT skip
       #       <host: codex, opencode>      → do NOT skip
+      #   - Markers must appear at the start of a line (after optional whitespace).
       #   - Emits "LINENO:content" for every non-skipped line.
       annotated="$(awk '
         BEGIN { skip = 0; ln = 0 }
         {
           ln++
-          if (/^[[:space:]]*<host:/) {
-            if (/claude-code/) { skip = 1; next }
-          }
+          if (/^[[:space:]]*<host:[[:space:]]*claude-code[[:space:]]*>/) { skip = 1; next }
           if (/^[[:space:]]*<\/host>/) { skip = 0; next }
           if (!skip) { print ln ":" $0 }
         }
@@ -68,7 +72,6 @@ find skills agents -type f -name '*.md' -print0 \
         matches="$(printf '%s\n' "$annotated" | grep -w "$token" || true)"
         if [ -n "$matches" ]; then
           printf '%s\n' "$matches" | sed "s|^|$file:|" >> "$tmp"
-          fail=1
         fi
       done
     done

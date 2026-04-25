@@ -93,8 +93,9 @@ skills/
 ## Host-Conditional Sections
 
 Skills may need different content per host (Claude Code, Codex, OpenCode,
-Cursor). Use inline `<host: …>` markers to gate host-specific prose. Sections
-without a marker apply to every host.
+Cursor). Use `<host: …>` markers to gate host-specific prose. Markers must
+appear on their own lines (the guard only recognises them at line start, after
+optional whitespace). Sections without a marker apply to every host.
 
 ### Syntax
 
@@ -110,7 +111,10 @@ without a marker apply to every host.
 
 Markers use angle-bracket tag syntax that most markdown renderers treat as
 unknown HTML elements and render harmlessly. Comma-separated host lists are
-allowed inside the opening tag. Nested markers are not allowed.
+allowed inside the opening tag, but a block tagged with multiple hosts (e.g.
+`<host: codex, claude-code>`) is NOT exempt from the guard — the guard only
+skips blocks tagged exclusively with `claude-code`. Nested markers are not
+allowed.
 
 **Why angle-bracket form, not HTML-comment form?** The angle-bracket form is
 visible in PR diffs and skill-author reviews. The HTML-comment form
@@ -154,7 +158,7 @@ a `<host: claude-code>` block:
 
 `TodoWrite`, `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`,
 `TeamCreate`, `TeamDelete`, `SendMessage`, `EnterPlanMode`,
-`Sonnet`, `Opus`, `Haiku`.
+`Sonnet`, `Opus`, `Haiku` (and their lowercase forms `sonnet`, `opus`, `haiku`).
 
 Use role names (`fast` / `balanced` / `frontier` / `coding-specialist`) for
 model tiers and resolve them through `agents/model-tiers.md`.
