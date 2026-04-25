@@ -25,9 +25,11 @@ Invoked automatically by `writing-plans` in autonomous mode. Can also be invoked
 
 ## Dispatching the Alignment Agent
 
-Dispatch a `balanced`-tier subagent to perform the comparison using the following prompt:
+Dispatch a `balanced`-tier subagent to perform the comparison.
 
 <host: claude-code>
+On Claude Code, use the Agent tool:
+
 ```
 Agent tool (general-purpose, model: balanced):
   description: "Check alignment: design vs plan"
