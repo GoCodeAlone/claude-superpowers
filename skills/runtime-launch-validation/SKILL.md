@@ -23,7 +23,7 @@ Triggered by changes to any of:
 - Application-startup configuration (config files read at boot)
 - Database migrations
 - Plugin / extension loading paths
-- Interface boundary changes (new method, field, event type, or hook crossing a producer→consumer or caller→callee boundary)
+- Interface boundary changes (new method, field, event type, or hook crossing a producer→consumer, caller→callee, sender→handler, or plugin→host boundary)
 
 Triggered NOT by:
 
@@ -42,7 +42,7 @@ Triggered NOT by:
 | Database migration | Apply against ephemeral DB instance; revert (down migration, if applicable); re-apply | Idempotent? No orphaned schema objects? |
 | Library / SDK | Import into a tiny consumer program, exercise the new public surface | Output, behavior matches docs |
 | Plugin / extension | Load it into the host application, exercise a representative call | Host doesn't crash on load; representative call returns |
-| Interface boundary change (new method, field, event type, or hook crossing a producer→consumer or caller→callee boundary) | Launch both sides; exercise a real call across the boundary — not a mock or stub on either end | The consumer receives and correctly processes the new data/method/hook; no fallback silently swallows the new path; failure-signature scrape clean on both sides |
+| Interface boundary change (new method, field, event type, or hook crossing a producer→consumer, caller→callee, plugin→host, or sender→handler boundary) | Launch both sides/participants as applicable; exercise a real interaction across the boundary — not a mock or stub on either end | The receiving side correctly processes the new data/method/event/hook; no fallback silently swallows the new path; failure-signature scrape clean on all participating sides |
 
 ## Failure-signature scrape
 

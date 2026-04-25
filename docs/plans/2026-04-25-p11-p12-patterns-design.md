@@ -16,7 +16,7 @@ Neither pattern is in the bug-class checklist, the TDD skill, or the runtime-lau
 
 ## Approach
 
-In-place additions to three existing skills. No new files, no shared pattern docs — the skills are the single source of truth for reviewers and implementers respectively.
+In-place additions to three existing skills. No new skill files or shared operational pattern docs — the skills remain the single source of truth for reviewer and implementer guidance.
 
 ### 1. `skills/requesting-code-review/SKILL.md`
 
