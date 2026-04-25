@@ -1,6 +1,6 @@
 # Team Conventions
 
-Shared rules every team agent (implementer, spec-reviewer, code-reviewer)
+Shared rules that every team agent (implementer, spec-reviewer, code-reviewer)
 follows. Referenced from skill prompts so each dispatch doesn't re-state
 them.
 

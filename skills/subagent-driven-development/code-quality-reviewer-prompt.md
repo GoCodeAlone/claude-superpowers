@@ -12,6 +12,7 @@ Task tool (superpowers:code-reviewer):
 
   WHAT_WAS_IMPLEMENTED: [from implementer's report]
   PLAN_OR_REQUIREMENTS: Task N from [plan-file]
+  PLAN_REFERENCE: [full task text from plan]
   BASE_SHA: [commit before task]
   HEAD_SHA: [current commit]
   DESCRIPTION: [task summary]
