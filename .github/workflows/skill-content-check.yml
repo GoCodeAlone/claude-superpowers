@@ -6,6 +6,13 @@ on:
       - 'skills/**'
       - 'agents/**'
       - 'tests/skill-content-grep.sh'
+      - '.github/workflows/skill-content-check.yml'
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'agents/**'
+      - 'tests/skill-content-grep.sh'
+      - '.github/workflows/skill-content-check.yml'
   workflow_dispatch:
 
 permissions:
