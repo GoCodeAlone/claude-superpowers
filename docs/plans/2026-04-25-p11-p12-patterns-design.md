@@ -16,7 +16,7 @@ Neither pattern is in the bug-class checklist, the TDD skill, or the runtime-lau
 
 ## Approach
 
-In-place additions to three existing skills. No new skill files or shared operational pattern docs — the skills remain the single source of truth for reviewer and implementer guidance.
+In-place additions to three existing skills, plus one new shared reference file (`agents/boundary-classes.md`) that serves as the canonical definition of interface boundary classes. The three skills remain the single source of truth for reviewer and implementer guidance; `agents/boundary-classes.md` is a supporting reference (parallel to `agents/team-conventions.md`) that eliminates duplicated inline lists across skills.
 
 ### 1. `skills/requesting-code-review/SKILL.md`
 
@@ -51,6 +51,7 @@ Add two rows to the bug-class checklist table (after the existing "Scope-vs-disp
 
 ## Out of Scope
 
-- No new skill files.
+- No new skill files (SKILL.md files).
+- `agents/boundary-classes.md` is a shared reference file, not a skill — in scope.
 - No changes to `agents/team-conventions.md` (it already points to the requesting-code-review skill for bug-class rules).
 - No changes to the brainstorming or subagent-driven-development skills.

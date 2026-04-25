@@ -6,7 +6,7 @@ An **interface boundary** is any point where two independent components exchange
 |---|---|
 | **producer→consumer** | event emitter → subscriber, message publisher → queue reader, log writer → log aggregator |
 | **caller→callee** | client → server RPC, function caller → library function, test harness → system under test |
-| **plugin→host** | plugin emitting a lifecycle event → host receiving it, host invoking a plugin hook |
+| **plugin→host** | plugin emitting a lifecycle event → host receiving it, plugin calling a host API |
 | **sender→handler** | HTTP request sender → route handler, message sender → message handler, webhook emitter → webhook receiver |
 
 ## Why this matters
