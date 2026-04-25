@@ -53,7 +53,7 @@ Verify all skill file references resolve (no dead paths):
 Expected: no MISSING lines.
 
 Verify no bare (prefix-less) requesting-code-review refs:
-`grep -rEn '[^/]requesting-code-review/' skills/subagent-driven-development/ agents/team-conventions.md --include="*.md" --exclude-dir=test-fixtures`
+`grep -rEn '(^|[^/])requesting-code-review/' skills/subagent-driven-development/ agents/team-conventions.md --include="*.md" --exclude-dir=test-fixtures`
 Expected: 0 matches.
 
 Verify no curly-brace placeholders in prompt templates:
