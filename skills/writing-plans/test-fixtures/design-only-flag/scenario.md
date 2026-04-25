@@ -15,7 +15,7 @@ Expected behavior:
 - writing-plans STOPS — does NOT invoke subagent-driven-development.
 
 Verification:
-- `docs/plans/...-design.md` and `...-plan.md` both committed.
+- `docs/plans/YYYY-MM-DD-<topic>-design.md` and `docs/plans/YYYY-MM-DD-<feature-name>.md` both committed.
 - No subagent-driven-development invocation in the session log.
 - Orchestrator can later resume by passing the plan path to
   subagent-driven-development directly when ready.

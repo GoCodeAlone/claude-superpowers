@@ -49,7 +49,7 @@ The autonomous flag propagates through the entire pipeline: writing-plans → al
 
 ## Design-only mode
 
-When the orchestrator wants the pipeline to halt after alignment-check (no execution dispatched), they pass `--design-only`, OR the plan's first line is a header comment `<!-- design-only -->`, OR the brainstorm that called writing-plans propagated the same flag.
+When the orchestrator wants the pipeline to halt after alignment-check (no execution dispatched), they pass `--design-only`, OR the plan includes a YAML frontmatter block `---\ndesign-only: true\n---` above the H1, OR the brainstorm that called writing-plans propagated the same flag.
 
 **Behavior under `--design-only`:**
 
@@ -57,7 +57,7 @@ When the orchestrator wants the pipeline to halt after alignment-check (no execu
 2. Commit the plan as normal.
 3. Invoke `superpowers:alignment-check` as normal.
 4. **On alignment PASS: STOP.** Do NOT invoke subagent-driven-development.
-5. **On alignment FAIL:** revise the plan based on drift items, re-check (max 2 cycles) — same as default Autonomous Mode. After revision, if PASS, still STOP (do not proceed to execution).
+5. **On alignment FAIL:** revise the plan based on drift items, re-check (max 2 cycles) — same as default Autonomous Mode. After revision, if PASS, still STOP (do not proceed to execution). On persistent FAIL (after max 2 cycles), escalate to user with unresolved drift summary — no execution dispatched regardless.
 6. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `subagent-driven-development` directly.
 
 **When to use:**
@@ -75,15 +75,17 @@ When writing a plan task, the verification step must match the change class. A g
 | Change class | Verification | Expected output |
 |---|---|---|
 | Internal logic refactor | unit tests | all green |
-| Schema migration | apply against ephemeral DB; down + re-apply | idempotent, no orphans |
-| API endpoint | exercise endpoint with representative inputs (curl, gRPC, etc.) | correct status + body |
-| Build pipeline / Dockerfile | build artifact + launch + healthcheck (see `runtime-launch-validation`) | transcript captured |
-| Version pin update | run version-skew audit + relaunch artifact | transcript + audit clean |
-| CLI command | `cmd --help` + representative invocation | help text correct, exit 0 |
+| Schema migration | apply against ephemeral DB; down + re-apply | no orphaned tables; `migration_versions` shows applied |
+| API endpoint | exercise endpoint with representative inputs (curl, gRPC, etc.) | HTTP 200 + expected JSON body |
+| Build pipeline / Dockerfile | build artifact + launch + healthcheck (see `runtime-launch-validation`) | transcript captured; exit 0 |
+| Version pin update | run version-skew audit + relaunch artifact | transcript captured; audit clean |
+| CLI command | `cmd --help` + representative invocation | help text correct; exit 0 |
 | UI component | render in browser/dev server | screenshot or visual confirmation |
-| Plugin / extension | load into host + exercise representative call | host doesn't crash, call returns |
+| Plugin / extension | load into host + exercise representative call | exit 0; representative call returns expected value |
 | Documentation / comments | spell-check + render preview | no broken anchors |
-| Hook / trigger / event handler | fire the event; observe handler runs | logged side effect; assertion |
+| Hook / trigger / event handler | fire the event; observe handler runs | logged side effect confirmed; assertion passes |
+
+These examples are illustrative minimums; per-task `Expected:` fields must be literal values the check can assert against.
 
 Plan tasks falling in any class except "internal logic refactor" or "documentation / comments" must include a runtime-validation step in their TDD breakdown — typically by invoking `runtime-launch-validation` from `finishing-a-development-branch` Step 1b.
 
