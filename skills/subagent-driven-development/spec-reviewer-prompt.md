@@ -4,6 +4,14 @@ Use this template when dispatching a spec compliance reviewer subagent.
 
 **Purpose:** Verify implementer built what was requested (nothing more, nothing less)
 
+<host: claude-code>
+**Agent Teams additions:** When using Agent Teams, also add to the prompt:
+- Wait for DMs from implementers saying a task is ready
+- DM code-reviewer when spec compliance passes
+- DM implementer when issues are found
+- Use TaskUpdate to mark "Review spec:" tasks as completed
+</host>
+
 ```
 Task tool (general-purpose):
   description: "Review spec compliance for Task N"
@@ -31,11 +39,3 @@ Task tool (general-purpose):
     - Notify the code-reviewer when spec compliance passes
     - Notify the implementer when issues are found
 ```
-
-<host: claude-code>
-When Agent Teams is active, add to the prompt:
-- Wait for DMs from implementers saying a task is ready
-- DM code-reviewer when spec compliance passes
-- DM implementer when issues are found
-- Use TaskUpdate to mark "Review spec:" tasks as completed
-</host>
