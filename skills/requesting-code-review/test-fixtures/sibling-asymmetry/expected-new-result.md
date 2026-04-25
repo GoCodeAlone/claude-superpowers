@@ -7,23 +7,20 @@ No MISSING items. No SCOPE CREEP.
 
 ## Bug-class scan
 
-**Symmetry violations** — FINDING. `Inspect` omits `"kind": d.kind`. Both `Create` (line 11) and `Delete` (line 27) set it as the first arg in their maps.
+**Symmetry violations** — FINDING. `Inspect` omits `"kind": d.kind`. Both `Create` (line 11) and `Delete` (line 27) set it as the first arg in their maps. (See Finding 1 below.)
 
-**Error swallowing** — none observed in the diff.
+**Checks completed without further findings:**
 
-**Comment-vs-code drift** — no comments in diff.
-
-**Test-name-vs-body mismatch** — no tests in diff.
-
-**Missing edge cases** — no tests added for `Inspect` at all; however the dispatch did not require tests.
-
-**Concurrency bugs** — none observed.
-
-**Type-coercion silent failures** — none observed.
-
-**Dead/unreachable code** — none observed.
-
-**Scope-vs-dispatch drift** — gate passed above.
+| Bug class | Result |
+|---|---|
+| Error swallowing | None — no error returns in the diff |
+| Comment-vs-code drift | None — no comments in diff |
+| Test-name-vs-body mismatch | None — no tests in diff |
+| Missing edge cases | None flagged — dispatch did not require tests; no new paths added beyond the one method |
+| Concurrency bugs | None — no goroutines, channels, or shared state in diff |
+| Type-coercion silent failures | None — args map uses `string` and struct fields; no encode/decode |
+| Dead/unreachable code | None — new method is reachable via the same call sites as siblings |
+| Scope-vs-dispatch drift | Gate passed above |
 
 ## Findings
 

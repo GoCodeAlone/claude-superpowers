@@ -206,7 +206,7 @@ git commit -m "skill(requesting-code-review): bug-class checklist (9 classes)"
 
 **Step 1: Insert after the bug-class checklist**
 
-```markdown
+````markdown
 ## Output format (per-finding, inline at file:line)
 
 Every finding is one block in this shape:
@@ -229,7 +229,7 @@ Every finding is one block in this shape:
 - Mixing multiple findings into one block
 
 **Why:** prose summaries glide over specifics. The same reviewer producing a paragraph approves bugs they would have flagged if forced into a per-finding format. Inline anchored output reproduces what a focused external reviewer naturally produces.
-```
+````
 
 **Step 2: Commit**
 

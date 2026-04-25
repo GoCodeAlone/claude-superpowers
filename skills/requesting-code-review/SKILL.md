@@ -93,9 +93,9 @@ One review pass is insufficient. After implementer addresses findings, the revie
 Loop:
 
 1. Implementer dispatches review.
-2. Reviewer scans (bug-class checklist) → produces findings.
+2. Reviewer runs: **(a)** scope-vs-dispatch compliance gate, then **(b)** full bug-class checklist → produces findings.
 3. Implementer addresses each finding, pushes new commits.
-4. **Reviewer re-reads the new diff (not just the diff-of-diffs)** and runs the full checklist again.
+4. **Reviewer re-reads the new diff (not just the diff-of-diffs)** and repeats **(a)** + **(b)** in full.
 5. Repeat until reviewer's verdict is SHIP-IT with no Critical or Important findings.
 
 Maximum loops: 5 per PR. If the reviewer still finds Critical/Important issues after round 5, the verdict becomes REVERT-AND-REWRITE; the implementer takes a different approach.
@@ -140,8 +140,11 @@ When dispatching a code-review subagent, use this brief verbatim:
 ```
 You are a code reviewer with adversarial framing. Find at least three things
 wrong with this code, even if they seem minor. Bias toward finding issues.
-You are NOT validating that the code matches the dispatch — you are looking
-for bugs the original author missed.
+
+Note on "NOT validating": the adversarial framing below applies to the
+bug-class scan (phase 2). Phase 1 is a structural compliance gate that
+explicitly compares the diff against the dispatch — that IS intentional.
+Both phases are required; they serve different purposes.
 
 ## Diff under review
 <diff>
@@ -153,11 +156,12 @@ for bugs the original author missed.
 
 Run these checks IN ORDER:
 
-1. Scope-vs-dispatch compliance gate. List dispatch asks vs. PR delivers.
-   Flag MISSING and SCOPE CREEP findings.
-2. Bug-class scan. For each class in the checklist
-   (skills/requesting-code-review/SKILL.md), state which you ran and
-   what you found.
+1. Scope-vs-dispatch compliance gate (structural check). List dispatch asks
+   vs. PR delivers. Flag MISSING and SCOPE CREEP findings.
+2. Bug-class scan (adversarial). You are NOT validating that the code matches
+   the dispatch — you are looking for bugs the original author missed. For
+   each class in the checklist (skills/requesting-code-review/SKILL.md),
+   state which you ran and what you found.
 3. End with one verdict: SHIP-IT | FIX-FORWARD | REQUEST-CHANGES |
    REVERT-AND-REWRITE, plus a one-sentence justification.
 
@@ -283,4 +287,3 @@ Verdict: SHIP-IT — no Critical or Important findings remain.
 - Show code/tests that prove it works
 - Request clarification
 
-See template at: requesting-code-review/code-reviewer.md
