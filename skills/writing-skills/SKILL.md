@@ -116,9 +116,9 @@ allowed inside the opening tag, but a block tagged with multiple hosts (e.g.
 skips blocks tagged exclusively with `claude-code`. Nesting markers is not
 supported; behaviour with nested blocks is undefined.
 
-The guard also skips fenced code blocks (`` ``` `` … `` ``` ``, including
-opening fences with info strings like `` ```bash ``) so tool names can
-appear freely in example code without triggering a false positive.
+The guard also skips fenced code blocks (3+ backtick delimiters, with or
+without an info string such as `bash`) so tool names can appear freely in
+example code without triggering a false positive.
 
 **Why angle-bracket form, not HTML-comment form?** The angle-bracket form is
 visible in PR diffs and skill-author reviews. The HTML-comment form
