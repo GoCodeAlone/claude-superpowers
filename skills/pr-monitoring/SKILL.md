@@ -17,7 +17,7 @@ Invoked automatically by `finishing-a-development-branch` in autonomous mode aft
 
 ## The Process
 
-Spawn a background `balanced`-tier agent that monitors the PR in a loop following the Monitor Loop procedure.
+Run a `balanced`-tier agent that monitors the PR in a loop following the Monitor Loop procedure.
 
 <host: claude-code>
 Use the Agent tool to run the monitor in the background:
@@ -94,9 +94,12 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
 
 <host: codex, opencode, cursor>
 
-Use your host's equivalent mechanism to periodically poll `gh pr checks <number>` and
-`gh api repos/<owner>/<repo>/pulls/<number>/comments` in a loop, fixing failures and
-responding to review comments until all checks pass and no unresolved comments remain.
+Use your host's equivalent mechanism to periodically poll the following in a loop:
+- `gh pr checks <number>` — fix any failing CI checks
+- `gh api repos/<owner>/<repo>/pulls/<number>/comments` — respond to inline review comments
+- `gh api repos/<owner>/<repo>/pulls/<number>/reviews` — handle any "CHANGES_REQUESTED" reviews
+
+Continue until all checks pass, no unresolved inline comments remain, and no "changes requested" reviews are pending.
 
 </host>
 
