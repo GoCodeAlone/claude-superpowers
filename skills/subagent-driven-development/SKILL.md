@@ -97,7 +97,7 @@ Agent tool:
     1. Check TaskList for available unblocked tasks with "Implement:" prefix
     2. Claim one with TaskUpdate (set owner to your name, status to in_progress)
     3. Implement the task following TDD (see task description for full spec)
-    4. Self-review using the checklist below
+    4. Self-review per `agents/team-conventions.md`
     5. Commit your work
     6. DM spec-reviewer: "Task N ready for review" with summary of what you built
     7. Wait for reviewer feedback — fix issues if any

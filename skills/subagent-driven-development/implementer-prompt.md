@@ -27,7 +27,7 @@ Task tool (general-purpose):
 
     If you have questions, ask them before starting. Don't guess or make assumptions.
 
-    When complete, dispatch code review per `skills/requesting-code-review/SKILL.md`
-    using the adversarial brief.
+    When complete, DM spec-reviewer that the task is ready for the
+    spec-compliance gate.
     DM team-lead with PR link when CI green and reviewer at SHIP-IT.
 ```
