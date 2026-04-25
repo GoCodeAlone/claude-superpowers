@@ -38,7 +38,7 @@ Triggered NOT by:
 |---|---|---|
 | Application binary (server, CLI) | Build, run with production-equivalent config, exercise primary entry point (HTTP healthcheck, CLI `--version` plus a representative subcommand) | Stdout/stderr capture; exit code; healthcheck status |
 | Container image | Build, `docker run` with production-equivalent env, hit `/healthz` (or equivalent) | Container logs, exit code, healthcheck status |
-| Database migration | Apply against ephemeral DB instance; revert (down migration); re-apply | Idempotent? No orphaned schema objects? |
+| Database migration | Apply against ephemeral DB instance; revert (down migration, if applicable); re-apply | Idempotent? No orphaned schema objects? |
 | Library / SDK | Import into a tiny consumer program, exercise the new public surface | Output, behavior matches docs |
 | Plugin / extension | Load it into the host application, exercise a representative call | Host doesn't crash on load; representative call returns |
 
