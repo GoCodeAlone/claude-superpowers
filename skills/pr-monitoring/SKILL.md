@@ -17,7 +17,7 @@ Invoked automatically by `finishing-a-development-branch` in autonomous mode aft
 
 ## The Process
 
-Run a `balanced`-tier agent that monitors the PR in a loop following the Monitor Loop procedure.
+Run a `balanced`-tier agent that monitors the PR in a loop until all CI checks pass and no unresolved reviews remain.
 
 <host: claude-code>
 Use the Agent tool to run the monitor in the background:
