@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # tests/skill-content-grep.sh
 # Fails if forbidden host-specific tokens appear in skill text outside an
-# allowed context (<host: claude-code> block, model-tiers table, or an
-# explicitly allowed file).
+# allowed context (<host: claude-code> block, fenced code block,
+# model-tiers table, or an explicitly allowed file).
 #
 # Usage:
 #   ./tests/skill-content-grep.sh          # scan all files, exit 1 on violations
 #   ./tests/skill-content-grep.sh 2>&1 | grep some-skill   # scoped check
 
-set -u
+set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
@@ -30,6 +30,11 @@ TOKENS=(
 # under skills/ or agents/ here.
 ALLOWED_FILES=(
   "agents/model-tiers.md"
+  # Claude-specific reference docs under writing-skills/: these discuss
+  # Anthropic model names and Claude-only tools as subject matter and are
+  # not portable skill bodies.
+  "skills/writing-skills/anthropic-best-practices.md"
+  "skills/writing-skills/persuasion-principles.md"
 )
 
 tmp="$(mktemp)"
@@ -53,13 +58,34 @@ find skills agents -type f -name '*.md' -print0 \
       #       <host: claude-code>          → skip
       #       <host: codex, claude-code>   → do NOT skip
       #       <host: codex, opencode>      → do NOT skip
-      #   - Markers must occupy the whole line (only optional whitespace around
-      #     the tag). A marker with trailing text is NOT recognised as a marker.
+      #   - Skips fenced code blocks.  A fence delimiter is any line whose
+      #     non-whitespace content is 3+ backticks followed by an optional
+      #     info-string (alphanumeric / _+-) and optional trailing whitespace.
+      #     Opening and closing fences must use the same backtick width, so
+      #     nested fences (4-backtick outer / 3-backtick inner example) are
+      #     handled correctly without desynchronising the toggle.
+      #   - Markers must occupy the whole line (only optional whitespace
+      #     around the tag). A marker with trailing text is NOT recognised.
       #   - Emits "LINENO:content" for every non-skipped line.
       annotated="$(awk '
-        BEGIN { skip = 0; ln = 0 }
+        BEGIN { skip = 0; fence_width = 0; ln = 0 }
         {
           ln++
+          # Detect fence delimiter: strip leading whitespace, count backticks,
+          # check remainder is a valid info-string + optional trailing space.
+          stripped = $0
+          sub(/^[[:space:]]*/, "", stripped)
+          if (stripped ~ /^```/) {
+            n = 0
+            s = stripped
+            while (length(s) > 0 && substr(s, 1, 1) == "`") { n++; s = substr(s, 2) }
+            if (s ~ /^[a-zA-Z0-9_+-]*[[:space:]]*$/) {
+              if (fence_width == 0) { fence_width = n; next }
+              if (n == fence_width)  { fence_width = 0; next }
+              # Different width inside a fence — treat as content.
+            }
+          }
+          if (fence_width > 0) { next }
           if (/^[[:space:]]*<host:[[:space:]]*claude-code[[:space:]]*>[[:space:]]*$/) { skip = 1; next }
           if (/^[[:space:]]*<\/host>[[:space:]]*$/) { skip = 0; next }
           if (!skip) { print ln ":" $0 }

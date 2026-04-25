@@ -116,6 +116,10 @@ allowed inside the opening tag, but a block tagged with multiple hosts (e.g.
 skips blocks tagged exclusively with `claude-code`. Nesting markers is not
 supported; behaviour with nested blocks is undefined.
 
+The guard also skips fenced code blocks (`` ``` `` … `` ``` ``, including
+opening fences with info strings like `` ```bash ``) so tool names can
+appear freely in example code without triggering a false positive.
+
 **Why angle-bracket form, not HTML-comment form?** The angle-bracket form is
 visible in PR diffs and skill-author reviews. The HTML-comment form
 (`<!-- host: claude-code -->`) renders fully invisibly, which is a footgun:
@@ -670,10 +674,10 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 
 ## Skill Creation Checklist (TDD Adapted)
 
-**IMPORTANT: Track each checklist item below as a task in your host's task system.**
+Create a todo/task entry in your environment for each checklist item before starting.
 
 <host: claude-code>
-Use TodoWrite to create a todo for EACH checklist item below.
+Use TodoWrite to create one todo per item.
 </host>
 
 **RED Phase - Write Failing Test:**
