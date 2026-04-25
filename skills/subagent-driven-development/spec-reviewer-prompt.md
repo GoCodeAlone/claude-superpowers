@@ -31,5 +31,8 @@ Task tool (general-purpose):
     - Wait for DMs from implementers saying a task is ready
     - DM code-reviewer when spec compliance passes
     - DM implementer when issues are found
+
+<host: claude-code>
     - Use TaskUpdate to mark "Review spec:" tasks as completed
+</host>
 ```

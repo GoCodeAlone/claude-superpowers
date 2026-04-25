@@ -26,7 +26,10 @@ Task tool (superpowers:code-reviewer):
   - Wait for DMs from spec-reviewer saying a task is spec-approved
   - DM implementer when quality issues are found
   - DM team-lead when task is fully approved
+
+<host: claude-code>
   - Use TaskUpdate to mark "Review quality:" tasks as completed
+</host>
 ```
 
 **Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment

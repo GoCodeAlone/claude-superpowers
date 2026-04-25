@@ -133,13 +133,19 @@ Do not modify the command or add additional flags.
 
 Skills act as additions to models, so effectiveness depends on the underlying model. Test your Skill with all the models you plan to use it with.
 
-**Testing considerations by model**:
+**Testing considerations by model tier** (see `agents/model-tiers.md` for host-specific names):
 
-* **Claude Haiku** (fast, economical): Does the Skill provide enough guidance?
+* **`fast` tier**: Does the Skill provide enough guidance?
+* **`balanced` tier**: Is the Skill clear and efficient?
+* **`frontier` tier**: Does the Skill avoid over-explaining?
+
+<host: claude-code>
+* **Claude Haiku** (fast): Does the Skill provide enough guidance?
 * **Claude Sonnet** (balanced): Is the Skill clear and efficient?
-* **Claude Opus** (powerful reasoning): Does the Skill avoid over-explaining?
+* **Claude Opus** (frontier): Does the Skill avoid over-explaining?
+</host>
 
-What works perfectly for Opus might need more detail for Haiku. If you plan to use your Skill across multiple models, aim for instructions that work well with all of them.
+What works well with a frontier-tier model may need more detail for a fast-tier model. If you plan to use your Skill across multiple models, aim for instructions that work well with all of them.
 
 ## Skill structure
 
@@ -1129,7 +1135,11 @@ Before sharing a Skill, verify:
 ### Testing
 
 * [ ] At least three evaluations created
+* [ ] Tested across model tiers (fast / balanced / frontier)
+
+<host: claude-code>
 * [ ] Tested with Haiku, Sonnet, and Opus
+</host>
 * [ ] Tested with real usage scenarios
 * [ ] Team feedback incorporated (if applicable)
 
