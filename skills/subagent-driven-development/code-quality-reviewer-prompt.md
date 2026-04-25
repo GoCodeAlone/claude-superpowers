@@ -16,13 +16,15 @@ Task tool (superpowers:code-reviewer):
   HEAD_SHA: [current commit]
   DESCRIPTION: [task summary]
 
-    ## Team Communication (Agent Teams Mode)
+  Follow team conventions: see `agents/team-conventions.md` (committed in
+  this repo) for adversarial framing, bug-class checklist, per-finding
+  inline output format, and verdict vocabulary.
 
-    When operating as a team member:
-    - Wait for DMs from spec-reviewer saying a task is spec-approved
-    - Use SendMessage to DM implementer when quality issues are found
-    - Use SendMessage to DM team lead when task is fully approved
-    - Use TaskUpdate to mark "Review quality:" tasks as completed
+  When operating as a team member:
+  - Wait for DMs from spec-reviewer saying a task is spec-approved
+  - DM implementer when quality issues are found
+  - DM team lead when task is fully approved
+  - Use TaskUpdate to mark "Review quality:" tasks as completed
 ```
 
 **Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment

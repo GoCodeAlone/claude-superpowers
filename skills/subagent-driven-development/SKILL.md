@@ -107,8 +107,11 @@ Agent tool:
     ## Design Document
     Reference: <design-doc-path>
 
-    ## Self-Review Checklist
-    [Content from implementer-prompt.md "Before Reporting Back" section]
+    ## Team Conventions
+    See `agents/team-conventions.md` for discipline rules: TDD with
+    regression-invariant proof, verification-before-completion,
+    runtime-launch-validation when triggers fire, version-skew audit,
+    self-review checklist, code-review request via adversarial brief.
 
     ## Important
     - Work in the project directory: <working-dir>
@@ -149,8 +152,9 @@ Agent tool:
     ## Design Document
     Reference: <design-doc-path>
 
-    ## CRITICAL: Do Not Trust Reports
-    [Content from spec-reviewer-prompt.md "CRITICAL" section]
+    ## Team Conventions
+    See `agents/team-conventions.md` for scope-vs-dispatch compliance gate
+    and review discipline every spec-reviewer applies.
 ```
 
 **Code Reviewer** (use `./code-quality-reviewer-prompt.md` as base):
@@ -179,8 +183,9 @@ Agent tool:
        - Mark the "Review quality:" task as completed
        - DM team lead: "Task N fully approved"
 
-    ## Standards
-    [Content from code-quality-reviewer-prompt.md]
+    ## Team Conventions
+    See `agents/team-conventions.md` for adversarial framing, bug-class
+    checklist, per-finding inline output format, and verdict vocabulary.
 ```
 
 **4. Monitor and steer:**
