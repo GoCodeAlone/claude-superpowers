@@ -47,6 +47,47 @@ When invoked from brainstorming with autonomous context (design already approved
 
 The autonomous flag propagates through the entire pipeline: writing-plans → alignment-check → execution → PR creation → PR monitoring.
 
+## Design-only mode
+
+When the orchestrator wants the pipeline to halt after alignment-check (no execution dispatched), they pass `--design-only`, OR the plan's first line is a header comment `<!-- design-only -->`, OR the brainstorm that called writing-plans propagated the same flag.
+
+**Behavior under `--design-only`:**
+
+1. Save the plan to `docs/plans/<filename>.md` as normal.
+2. Commit the plan as normal.
+3. Invoke `superpowers:alignment-check` as normal.
+4. **On alignment PASS: STOP.** Do NOT invoke subagent-driven-development.
+5. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `subagent-driven-development` directly.
+
+**When to use:**
+
+- Design exploration ahead of available implementation capacity.
+- Cross-cutting designs that affect multiple workstreams; lock the design in before any one workstream starts.
+- Designs with prerequisites in-flight elsewhere; queue the plan now, execute when prerequisites land.
+
+**Default (no flag):** alignment-check PASS → invoke subagent-driven-development. Same as before.
+
+## Verification per change class
+
+When writing a plan task, the verification step must match the change class. A green unit-test run is sufficient ONLY for internal-logic refactors. Other classes need stronger evidence.
+
+| Change class | Verification | Expected output |
+|---|---|---|
+| Internal logic refactor | unit tests | all green |
+| Schema migration | apply against ephemeral DB; down + re-apply | idempotent, no orphans |
+| API endpoint | exercise endpoint with representative inputs (curl, gRPC, etc.) | correct status + body |
+| Build pipeline / Dockerfile | build artifact + launch + healthcheck (see `runtime-launch-validation`) | transcript captured |
+| Version pin update | run version-skew audit + relaunch artifact | transcript + audit clean |
+| CLI command | `cmd --help` + representative invocation | help text correct, exit 0 |
+| UI component | render in browser/dev server | screenshot or visual confirmation |
+| Plugin / extension | load into host + exercise representative call | host doesn't crash, call returns |
+| Documentation / comments | spell-check + render preview | no broken anchors |
+| Hook / trigger / event handler | fire the event; observe handler runs | logged side effect; assertion |
+
+Plan tasks falling in any class except "internal logic refactor" or "documentation / comments" must include a runtime-validation step in their TDD breakdown — typically by invoking `runtime-launch-validation` from `finishing-a-development-branch` Step 1b.
+
+The plan author writes the expected output literally — not "passes tests" but "logs `engine ready` within 10 seconds and `/healthz` returns 200".
+
 ## Bite-Sized Task Granularity
 
 **Each step is one action (2-5 minutes):**
