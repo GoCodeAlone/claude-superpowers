@@ -62,7 +62,6 @@ PRs A and E are the bookend infrastructure work. B, C, D are content edits and c
 
 **Files:**
 - Create: `tests/skill-content-grep.sh`
-- Create: `tests/skill-content-grep.expected.txt`
 
 **Goal:** A repeatable check that fails if a forbidden Claude-only token appears in a skill body **outside** an allowed context (a `<host: claude-code>` block, the model-tiers table, or a known-allowed file).
 
@@ -108,10 +107,8 @@ TOKENS=(
 ALLOWED_FILES=(
   "agents/model-tiers.md"
   "tests/skill-content-grep.sh"
-  "tests/skill-content-grep.expected.txt"
 )
 
-# Build a regex for files to scan: skills/**/*.md plus agents/*.md except allowed.
 fail=0
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
@@ -126,19 +123,27 @@ find skills agents -type f -name '*.md' -print0 \
         fi
       done
 
-      # Strip <host: claude-code>...</host> blocks (these are allowed to mention tokens).
-      stripped="$(awk '
-        BEGIN { skip = 0 }
-        /<host: *claude-code *>/ { skip = 1; next }
-        /<\/host>/ { skip = 0; next }
-        skip == 0 { print }
+      # Single-pass AWK: emit "LINENO:content" for lines outside <host: ...> blocks
+      # where claude-code appears anywhere in the (possibly comma-separated) host list.
+      # This preserves original line numbers and handles multi-host tags like
+      # <host: codex, claude-code> correctly.
+      annotated="$(awk '
+        BEGIN { skip = 0; ln = 0 }
+        {
+          ln++
+          if (/^[[:space:]]*<host:/) {
+            if (/claude-code/) { skip = 1; next }
+          }
+          if (/^[[:space:]]*<\/host>/) { skip = 0; next }
+          if (!skip) { print ln ":" $0 }
+        }
       ' "$file")"
 
       for token in "${TOKENS[@]}"; do
-        # Use grep -w for whole-word match.
-        if printf '%s\n' "$stripped" | grep -nw "$token" > /dev/null; then
-          printf '%s\n' "$stripped" | grep -nw "$token" \
-            | sed "s|^|$file:|" >> "$tmp"
+        # grep -w for whole-word match; || true prevents non-zero exit on no matches.
+        matches="$(printf '%s\n' "$annotated" | grep -w "$token" || true)"
+        if [ -n "$matches" ]; then
+          printf '%s\n' "$matches" | sed "s|^|$file:|" >> "$tmp"
           fail=1
         fi
       done
@@ -167,7 +172,7 @@ chmod +x tests/skill-content-grep.sh
 
 ```bash
 git add tests/skill-content-grep.sh
-git commit -m "test: add grep guard for Claude-only tokens in skill text"
+git commit -m "test: add AWK-based grep guard for Claude-only tokens in skill text"
 ```
 
 The guard will go from FAIL → PASS as Tasks 4–14 land. We do **not** add it to CI in this task; that's Task 17 once content is clean.
@@ -391,10 +396,10 @@ Keep the prompt body itself unchanged — that text is host-neutral.
 **Step 3: Run the grep guard scoped to this file**
 
 ```bash
-./tests/skill-content-grep.sh 2>&1 | grep alignment-check
+./tests/skill-content-grep.sh 2>&1 | grep alignment-check || true
 ```
 
-Expected: no matches reported for `skills/alignment-check/SKILL.md`.
+Expected: no output for `skills/alignment-check/SKILL.md` (no matches = PASS for this file; the overall script may still exit non-zero until other tasks land).
 
 **Step 4: Commit**
 
@@ -1229,7 +1234,7 @@ The full plan is done when:
 2. `tests/cross-llm-coverage.md` shows every skill row populated.
 3. README, `.codex/INSTALL.md`, `.opencode/INSTALL.md` all reference the host declaration and the role vocabulary.
 4. CI workflow runs on every PR touching `skills/`, `agents/`, or the guard itself.
-5. Two distinct clean Copilot review timestamps exist on each PR before merge.
+5. Each PR has received at least one clean Copilot review pass before merge (recommended: two distinct clean passes at the same HEAD to guard against false positives).
 
 ## Execution Handoff
 

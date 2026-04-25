@@ -139,7 +139,7 @@ Skill bodies use these two markers inline:
 
 A section without a `<host:>` marker is host-neutral and applies to all.
 
-These are **prose markers**, not parser directives. They are HTML-comment-shaped so they render harmlessly in any markdown viewer, but the model reads them and skips non-matching sections. We document this convention in `skills/writing-skills/SKILL.md` so future authors follow it.
+These are **prose markers**, not parser directives. They use angle-bracket tag syntax that most markdown renderers treat as unknown HTML tags and render harmlessly, but the model reads them and skips non-matching sections. We document this convention in `skills/writing-skills/SKILL.md` so future authors follow it.
 
 Example (excerpt from rewritten `subagent-driven-development`):
 
@@ -175,7 +175,7 @@ Skills refer to model tiers by **role** (`fast` / `balanced` / `frontier` / `cod
 
 Skills cite this table once: "Use a `balanced`-tier model — see `agents/model-tiers.md` for the host-specific name."
 
-The four hosts that pass through whatever model string the user has selected (OpenCode and Cursor) get blank entries in the table; the user's host config drives the choice.
+OpenCode and Cursor use `host-pass-through` in the table, meaning the host uses whatever model the user has selected in its own configuration; the user's host config drives the choice.
 
 ### 4. Workflow patterns with semantic gaps
 
