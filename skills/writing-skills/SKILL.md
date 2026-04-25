@@ -90,6 +90,75 @@ skills/
 - Code patterns (< 50 lines)
 - Everything else
 
+## Host-Conditional Sections
+
+Skills may need different content per host (Claude Code, Codex, OpenCode,
+Cursor). Use inline `<host: …>` markers to gate host-specific prose. Sections
+without a marker apply to every host.
+
+### Syntax
+
+```
+<host: claude-code>
+…content for Claude Code only…
+</host>
+
+<host: codex, opencode>
+…content shared between Codex and OpenCode…
+</host>
+```
+
+Markers use angle-bracket tag syntax that most markdown renderers treat as
+unknown HTML elements and render harmlessly. Comma-separated host lists are
+allowed inside the opening tag. Nested markers are not allowed.
+
+**Why angle-bracket form, not HTML-comment form?** The angle-bracket form is
+visible in PR diffs and skill-author reviews. The HTML-comment form
+(`<!-- host: claude-code -->`) renders fully invisibly, which is a footgun:
+authors can write host-conditional content and not notice when a marker is
+misspelled or unclosed. Visibility is the safer trade-off.
+
+### Recognised host names
+
+- `claude-code` — Anthropic Claude Code
+- `codex` — OpenAI Codex CLI
+- `opencode` — OpenCode.ai
+- `cursor` — Cursor
+
+Use exactly these strings. Adding a new host means updating this list, the
+grep guard's skip logic, and `agents/model-tiers.md`.
+
+### When to use a marker vs host-neutral phrasing
+
+Prefer host-neutral phrasing wherever possible:
+
+> Use the shared task list to coordinate sub-agents.
+
+Use a marker only when prose must name a host-specific tool, gesture, or
+command:
+
+```
+<host: claude-code>
+Use the `Agent` tool with `team_name` and `name` parameters.
+</host>
+<host: codex>
+Spawn a sub-agent by asking Codex in natural language. Codex's `/agent`
+slash command switches between active threads.
+</host>
+```
+
+### Forbidden tokens outside markers
+
+The grep guard at `tests/skill-content-grep.sh` rejects these tokens outside
+a `<host: claude-code>` block:
+
+`TodoWrite`, `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`,
+`TeamCreate`, `TeamDelete`, `SendMessage`, `EnterPlanMode`,
+`Sonnet`, `Opus`, `Haiku`.
+
+Use role names (`fast` / `balanced` / `frontier` / `coding-specialist`) for
+model tiers and resolve them through `agents/model-tiers.md`.
+
 ## SKILL.md Structure
 
 **Frontmatter (YAML):**
