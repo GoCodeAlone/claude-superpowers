@@ -60,6 +60,8 @@ The reviewer must explicitly scan for each of these bug classes on every diff. T
 | **Type-coercion silent failures** | Encode/decode where `int → float64` is silently lossy, where `[]any → []string` is rejected without a clear error, where `nil` and zero-value diverge. |
 | **Dead/unreachable code** | Branches no test exercises and no caller can reach. Either delete or cover. |
 | **Scope-vs-dispatch drift** | The implementation ships materially MORE or LESS than the dispatch asked for. Both directions are findings. (See the dedicated gate above.) |
+| **Shortcut / band-aid fix** | The fix suppresses a symptom without addressing the root cause. Examples: nil-guard on a value that should never be nil (ask why it is nil); retry loop masking a race condition; special-casing one known-bad input instead of fixing the upstream producer; deleting a failing test instead of fixing the underlying code. Ask: "if the root cause were restored and only the symptom suppressor kept, would the test still pass?" If yes, the test proves nothing about correctness. |
+| **One-sided boundary wiring** | A change touches an interface boundary (producer→consumer, caller→callee, plugin→host) but only one side is implemented or tested. The other side is a stub, TODO, or unchecked assumption. Both sides of every boundary must be wired, and at least one test must exercise the full crossing end-to-end (not mock both sides independently). |
 
 For each finding, the reviewer cites the bug class explicitly. This makes patterns visible across reviews and lets the team identify recurring weaknesses.
 
