@@ -1,0 +1,95 @@
+---
+name: runtime-launch-validation
+description: Use after unit tests pass, before merge, when a change affects runtime behavior — launch the built artifact under realistic conditions and observe its behavior
+---
+
+# Runtime Launch Validation
+
+## Iron Law
+
+**Unit-test green ≠ launch green.** Engines fail at startup. Build pipelines fail at first run. Migrations fail mid-apply. The only proof a runtime artifact works is launching it.
+
+After unit tests pass and before merge, for any change affecting runtime behavior, the implementer launches the built artifact under the closest-to-production conditions feasible locally, observes its behavior, and captures the transcript.
+
+This skill complements `verification-before-completion` (general principle: evidence before assertion). `runtime-launch-validation` is the operationalization for runtime artifacts.
+
+## When this applies
+
+Triggered by changes to any of:
+
+- Build configuration (Dockerfile, build script, CI build steps)
+- Deployment configuration (compose, Kubernetes manifests, deployment workflows)
+- Version pins on runtime, libraries, or build/launch-affecting tooling (images, CI build tools, language runtimes) — excludes dev-only tooling such as linters and formatters
+- Application-startup configuration (config files read at boot)
+- Database migrations
+- Plugin / extension loading paths
+
+Triggered NOT by:
+
+- Pure refactors of internal logic
+- Documentation
+- Test-only changes
+- Dev-only tooling pin upgrades (linters, formatters) that cannot affect startup or launch behavior
+- Library version bumps where the upgraded package has no runtime configuration impact AND existing tests already cover the new behavior
+
+## Per-change-class instructions
+
+| Change class | What to launch | What to observe |
+|---|---|---|
+| Application binary (server, CLI) | Build, run with production-equivalent config, exercise primary entry point (HTTP healthcheck, CLI `--version` plus a representative subcommand) | Stdout/stderr capture; exit code; healthcheck status |
+| Container image | Build, `docker run` with production-equivalent env, hit `/healthz` (or equivalent) | Container logs, exit code, healthcheck status |
+| Database migration | Apply against ephemeral DB instance; revert (down migration, if applicable); re-apply | Idempotent? No orphaned schema objects? |
+| Library / SDK | Import into a tiny consumer program, exercise the new public surface | Output, behavior matches docs |
+| Plugin / extension | Load it into the host application, exercise a representative call | Host doesn't crash on load; representative call returns |
+
+## Failure-signature scrape
+
+While watching the artifact run, scan output for these patterns. Any hit is a fail.
+
+- Panics / uncaught exceptions / crash dumps
+- "fetch from remote: lookup ... no such host" — DNS failure (common for missing version pins)
+- "module not found" / "import error"
+- "version mismatch" / "incompatible API version"
+- "schema drift" / "missing column" / "constraint violation"
+- "permission denied" on resources the artifact should be able to access
+- Stack traces (any language)
+- "address already in use" — port collision (often from prior runs not cleaned)
+
+If any pattern hits, the launch validation fails. Capture the exact line + 5 lines of context.
+
+## Transcript format for PR body
+
+Include in the PR description:
+
+```
+## Runtime launch transcript
+
+Build:
+$ <build command>
+<relevant lines, not full dump>
+
+Launch:
+$ <launch command>
+<startup lines until ready>
+<healthcheck observation>
+
+Failure-signature scrape: clean (or: list of hits with context)
+
+Verdict: PASS / FAIL
+```
+
+## Fall-back when local launch is infeasible
+
+If the change touches runtime behavior but the implementer's local environment can't realistically launch (no Docker, no target OS, no required external service), they must:
+
+1. State the constraint explicitly in the PR body.
+2. Propose how the launch will happen (e.g., "CI image-launch job runs on every PR; this PR enables that path") OR
+3. Ask the orchestrator to launch on a capable host before merge.
+
+The constraint is not an excuse to skip; it's a request for help.
+
+## See also
+
+- `skills/verification-before-completion/SKILL.md` — general evidence-before-assertion principle
+- `skills/finishing-a-development-branch/SKILL.md` — Step 1b invokes this skill
+- `skills/writing-plans/SKILL.md` — related planning guidance for per-change-class verification
