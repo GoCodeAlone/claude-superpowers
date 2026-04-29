@@ -1,5 +1,30 @@
 # Superpowers Release Notes
 
+## v5.3.0 (2026-04-29)
+
+### New Features
+
+**Compaction-recovery hooks (Claude Code, Cursor)**
+
+Long autonomous runs are now resilient to context compaction. Two hooks ship in `hooks/hooks.json`:
+
+- **`SessionStart` (matcher `compact|resume`)** — re-injects a `<superpowers-resumption-context>` block into the resumed session containing the original task (extracted from the first user message in the transcript) and the last 30 superpowers activity entries. This re-anchors a compacted **subagent** to its original assignment and re-anchors the **lead orchestrator** to its place in the pipeline. The hook fires inside each session against its own transcript, so subagents recover their own task context automatically.
+- **`PostToolUse` (matcher `Skill|Agent|Task.*`)** — appends each `Skill`, `Agent`, and `Task*`-family (`Task`, `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`, etc.) invocation to `.claude/superpowers-state/in-progress.jsonl` (capped at 200 lines; wiped on `startup|clear`, or when the session source can't be determined). Append+rotate is guarded by a `flock` when available so concurrent writes from the lead and subagents don't corrupt the JSONL. This is the activity log that the SessionStart hook replays.
+
+The state file is project-local and in JSONL format. Both hooks no-op gracefully when `jq` is unavailable. On hosts without a documented hooks system (Codex, OpenCode), the same recovery pattern is described in prose as a manual discipline.
+
+**Subagent watchdog cadence (every 5–10 minutes)**
+
+`subagent-driven-development` now prescribes a 5–10 minute health-check cadence on background subagents: confirm still-active, output flowing, no API/rate-limit/transport errors, not flailing off-task. Includes corrective playbooks for stuck agents (send a redirecting message, or terminate and re-dispatch with a one-line note about what went wrong). Tools mentioned (`TaskList`, `TaskOutput`, `SendMessage`, `TaskStop`, `ScheduleWakeup`) are wrapped in `<host: claude-code>` blocks; Codex and OpenCode get host-conditional equivalents (scratch-context tracking, status pings via thread / `@mention`).
+
+**Quality-based subagent rotation**
+
+`subagent-driven-development` now prescribes replacing — not re-prompting — a `subagent_type` that is consistently low-quality. Track per-session quality signals (review rejections, corrective messages, attributable failures); rotate triggers are 2 consecutive review rejections on the same task, 3 cumulative quality issues across tasks, or 2 instances of ignored guidance. Rotation should be stated visibly in user-facing text so the user can redirect.
+
+### Why
+
+A subagent that compacts mid-flight, hits a transient API error, or quietly drifts off-task can burn 30+ minutes of autonomous run time before anyone notices. The hook automation handles compaction recovery deterministically; the watchdog and rotation patterns rely on the orchestrator applying them consistently. Together they close the most common silent-degradation paths in the autonomous pipeline.
+
 ## v5.0.0 (2026-03-04)
 
 ### New Features

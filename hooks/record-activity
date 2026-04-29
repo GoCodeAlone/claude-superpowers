@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# PostToolUse hook: record superpowers-relevant activity
+#
+# Appends an entry to .claude/superpowers-state/in-progress.jsonl every time
+# the lead/orchestrator agent invokes a Skill, Agent, or Task* tool
+# (Task, TaskCreate, TaskList, TaskGet, TaskUpdate, etc.). The session-start
+# hook replays this file on compact|resume so the agent can resume the
+# pipeline it was running and check on dispatched subagents.
+
+set -euo pipefail
+
+# Need stdin (the PostToolUse JSON payload) and jq to do anything useful.
+[ -t 0 ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+hook_input=$(cat || true)
+[ -z "$hook_input" ] && exit 0
+
+tool_name=$(printf '%s' "$hook_input" | jq -r '.tool_name // empty' 2>/dev/null || true)
+cwd_dir=$(printf '%s'   "$hook_input" | jq -r '.cwd // empty'        2>/dev/null || true)
+[ -z "$cwd_dir" ] && cwd_dir="${PWD}"
+
+case "$tool_name" in
+    Skill)
+        skill=$(printf '%s' "$hook_input" | jq -r '.tool_input.skill // ""' 2>/dev/null || true)
+        args=$(printf  '%s' "$hook_input" | jq -r '.tool_input.args  // ""' 2>/dev/null || true)
+        detail="skill=${skill}"
+        [ -n "$args" ] && detail="${detail} args=${args:0:80}"
+        ;;
+    Agent|Task)
+        sa_type=$(printf '%s' "$hook_input" | jq -r '.tool_input.subagent_type // "general-purpose"' 2>/dev/null || true)
+        desc=$(printf    '%s' "$hook_input" | jq -r '.tool_input.description   // ""'                 2>/dev/null || true)
+        bg=$(printf      '%s' "$hook_input" | jq -r '.tool_input.run_in_background // false'         2>/dev/null || true)
+        detail="agent=${sa_type} desc=\"${desc:0:120}\" bg=${bg}"
+        ;;
+    Task*)
+        # Task family tools (TaskCreate/TaskList/TaskGet/TaskUpdate/etc.)
+        # don't share a single payload schema; record a generic best-effort
+        # summary from common fields rather than failing closed.
+        sa_type=$(printf '%s' "$hook_input" | jq -r '.tool_input.subagent_type // ""' 2>/dev/null || true)
+        desc=$(printf    '%s' "$hook_input" | jq -r '.tool_input.description   // .tool_input.title // ""' 2>/dev/null || true)
+        task_id=$(printf '%s' "$hook_input" | jq -r '.tool_input.id // .tool_input.task_id // ""' 2>/dev/null || true)
+        detail="task_tool=${tool_name}"
+        [ -n "$sa_type" ] && detail="${detail} agent=${sa_type}"
+        [ -n "$task_id" ] && detail="${detail} id=${task_id}"
+        [ -n "$desc"    ] && detail="${detail} desc=\"${desc:0:120}\""
+        ;;
+    *)
+        exit 0
+        ;;
+esac
+
+STATE_DIR="${cwd_dir}/.claude/superpowers-state"
+mkdir -p "$STATE_DIR" 2>/dev/null || exit 0
+STATE_FILE="${STATE_DIR}/in-progress.jsonl"
+LOCK_FILE="${STATE_DIR}/.in-progress.lock"
+
+ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+entry=$(jq -nc \
+    --arg ts     "$ts" \
+    --arg tool   "$tool_name" \
+    --arg detail "$detail" \
+    '{ts: $ts, tool: $tool, detail: $detail}' 2>/dev/null || true)
+[ -z "$entry" ] && exit 0
+
+# Append + cap under a lock so concurrent invocations from lead + subagents
+# can't corrupt the JSONL during the rotate step. POSIX `O_APPEND` makes the
+# raw append safe across processes already; the rotate step is what needs
+# serialization (tail-to-tmp + mv races can clobber the file).
+append_line() {
+    printf '%s\n' "$entry" >> "$STATE_FILE" 2>/dev/null || return 0
+}
+
+# Mutex-protected rotate. Uses flock when available; falls back to
+# `mkdir` (atomic on POSIX) so platforms without util-linux flock
+# (notably macOS) still serialize rotation correctly.
+rotate_if_needed() {
+    [ -f "$STATE_FILE" ] || return 0
+    [ "$(wc -l < "$STATE_FILE" 2>/dev/null || echo 0)" -gt 200 ] || return 0
+    # Use a PID-tagged tmp so concurrent rotates don't clobber each other's tmp.
+    local tmp="${STATE_FILE}.tmp.$$"
+    tail -n 200 "$STATE_FILE" > "$tmp" 2>/dev/null \
+        && mv "$tmp" "$STATE_FILE" 2>/dev/null
+    rm -f "$tmp" 2>/dev/null || true
+}
+
+append_line
+
+if command -v flock >/dev/null 2>&1; then
+    (
+        flock -w 5 9 || exit 0
+        rotate_if_needed
+    ) 9>"$LOCK_FILE"
+else
+    # mkdir is an atomic mutex on POSIX; only one rotater wins, others bail.
+    if mkdir "${LOCK_FILE}.d" 2>/dev/null; then
+        trap 'rmdir "${LOCK_FILE}.d" 2>/dev/null || true' EXIT
+        rotate_if_needed
+        rmdir "${LOCK_FILE}.d" 2>/dev/null || true
+        trap - EXIT
+    fi
+fi
+
+exit 0
