@@ -345,7 +345,7 @@ Hooks automate it. The plugin's `SessionStart` hook (matcher `compact|resume`) f
 - The first user message from the transcript (the "original task") — this is what re-anchors a compacted **subagent** to its assignment.
 - Recent superpowers activity (last 30 entries from `.claude/superpowers-state/in-progress.jsonl`) — this is what re-anchors the **lead** in the pipeline.
 
-Activity is captured by a `PostToolUse` hook (matcher `Skill|Agent|Task`) that appends each invocation to the JSONL state file (capped at 200 lines; wiped on `startup|clear`). The state file is project-local at `.claude/superpowers-state/in-progress.jsonl`.
+Activity is captured by a `PostToolUse` hook (matcher `Skill|Agent|Task.*`) that appends each invocation to the JSONL state file (capped at 200 lines; wiped on `startup|clear` or when the session source can't be determined). The state file is project-local at `.claude/superpowers-state/in-progress.jsonl`.
 
 You don't opt in. When you see the resumption block, treat it as authoritative and reorient before responding.
 
@@ -399,7 +399,7 @@ Subagents are teammates, not infrastructure. If one keeps producing low-quality 
 - Number of test/build failures attributable to its work.
 
 **Rotation triggers:**
-- 2 consecutive code-review rejections on the same task → switch to a different `subagent_type` for the retry, or escalate to a higher model tier (see `superpowers:model-tiers` agent).
+- 2 consecutive code-review rejections on the same task → switch to a different `subagent_type` for the retry, or escalate to a higher model tier (see `agents/model-tiers.md` for the role-to-host model mapping).
 - 3 cumulative quality issues across tasks in one session → stop dispatching that subagent_type for the remainder of the session; re-route its work to an alternative.
 - A subagent that ignores explicit guidance twice in a row → stop using it; the issue is the agent profile, not the prompt.
 

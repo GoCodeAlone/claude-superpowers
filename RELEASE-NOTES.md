@@ -9,7 +9,7 @@
 Long autonomous runs are now resilient to context compaction. Two hooks ship in `hooks/hooks.json`:
 
 - **`SessionStart` (matcher `compact|resume`)** — re-injects a `<superpowers-resumption-context>` block into the resumed session containing the original task (extracted from the first user message in the transcript) and the last 30 superpowers activity entries. This re-anchors a compacted **subagent** to its original assignment and re-anchors the **lead orchestrator** to its place in the pipeline. The hook fires inside each session against its own transcript, so subagents recover their own task context automatically.
-- **`PostToolUse` (matcher `Skill|Agent|Task`)** — appends each invocation to `.claude/superpowers-state/in-progress.jsonl` (capped at 200 lines; wiped on `startup|clear`). This is the activity log that the SessionStart hook replays.
+- **`PostToolUse` (matcher `Skill|Agent|Task.*`)** — appends each `Skill`, `Agent`, and `Task*`-family (`Task`, `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`, etc.) invocation to `.claude/superpowers-state/in-progress.jsonl` (capped at 200 lines; wiped on `startup|clear`, or when the session source can't be determined). Append+rotate is guarded by a `flock` when available so concurrent writes from the lead and subagents don't corrupt the JSONL. This is the activity log that the SessionStart hook replays.
 
 The state file is project-local and in JSONL format. Both hooks no-op gracefully when `jq` is unavailable. On hosts without a documented hooks system (Codex, OpenCode), the same recovery pattern is described in prose as a manual discipline.
 
