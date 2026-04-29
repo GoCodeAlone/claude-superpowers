@@ -1,25 +1,96 @@
 #!/usr/bin/env bash
 # SessionStart hook for superpowers plugin
+#
+# On every session start (startup|resume|clear|compact) this loads the
+# using-superpowers skill so the skills system is available before the first
+# turn. On compact|resume it ALSO injects a "resumption context" block that:
+#   - replays recent superpowers activity from .claude/superpowers-state/in-progress.jsonl
+#     (so a lead orchestrator knows which skills + subagents were in flight), and
+#   - extracts the first user message from the session transcript
+#     (so a subagent that just compacted can re-read its original task).
 
 set -euo pipefail
 
-# Determine plugin root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Check if legacy skills directory exists and build warning
+# Read hook payload from stdin (JSON). Tolerate empty/no-stdin invocations.
+hook_input=""
+if [ ! -t 0 ]; then
+    hook_input=$(cat || true)
+fi
+[ -z "$hook_input" ] && hook_input='{}'
+
+source_kind=""
+transcript_path=""
+cwd_dir="${PWD}"
+if command -v jq >/dev/null 2>&1; then
+    source_kind=$(printf '%s' "$hook_input"     | jq -r '.source // empty'           2>/dev/null || true)
+    transcript_path=$(printf '%s' "$hook_input" | jq -r '.transcript_path // empty' 2>/dev/null || true)
+    cwd_from_hook=$(printf '%s' "$hook_input"   | jq -r '.cwd // empty'              2>/dev/null || true)
+    [ -n "$cwd_from_hook" ] && cwd_dir="$cwd_from_hook"
+fi
+
+STATE_DIR="${cwd_dir}/.claude/superpowers-state"
+STATE_FILE="${STATE_DIR}/in-progress.jsonl"
+
+# Wipe stale state at the start of a brand-new (or cleared) session.
+if [ "$source_kind" = "startup" ] || [ "$source_kind" = "clear" ]; then
+    rm -f "$STATE_FILE"
+fi
+
+# Build the resumption context (only on compact|resume).
+resumption_section=""
+if { [ "$source_kind" = "compact" ] || [ "$source_kind" = "resume" ]; } && command -v jq >/dev/null 2>&1; then
+    activity=""
+    if [ -f "$STATE_FILE" ]; then
+        activity=$(tail -n 30 "$STATE_FILE" \
+            | jq -r '"- " + .ts + "  " + .tool + "  " + (.detail // "")' 2>/dev/null \
+            || tail -n 30 "$STATE_FILE")
+    fi
+
+    original_task=""
+    if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
+        original_task=$(jq -rs '
+            map(select((.type // "") == "user")) |
+            (first // empty) as $first |
+            ($first.message.content // $first.content // "") |
+            if type == "string" then .
+            elif type == "array" then ([.[] | select((.type // "") == "text") | (.text // "")] | join("\n"))
+            else "" end
+        ' "$transcript_path" 2>/dev/null || true)
+        original_task="${original_task:0:4000}"
+    fi
+
+    if [ -n "$activity" ] || [ -n "$original_task" ]; then
+        resumption_section=$'\n\n<superpowers-resumption-context source="'"$source_kind"$'">'
+        case "$source_kind" in
+            compact) source_phrase="just had a context-compaction event" ;;
+            resume)  source_phrase="just resumed from a previous transcript" ;;
+            *)       source_phrase="was just initialized with source=${source_kind}" ;;
+        esac
+        resumption_section+=$'\nThe session '"$source_phrase"$'. BEFORE answering the next message, reorient yourself using the context below. If you were mid-pipeline (brainstorming → writing-plans → alignment-check → subagent-driven-development → finishing-a-development-branch → pr-monitoring), pick up where you left off rather than re-deriving intent.'
+        if [ -n "$original_task" ]; then
+            resumption_section+=$'\n\n## Original task (first user message in this session)\n\n'"$original_task"
+        fi
+        if [ -n "$activity" ]; then
+            resumption_section+=$'\n\n## Recent superpowers activity (most recent 30 events)\n\n'"$activity"
+            resumption_section+=$'\n\nIf any of those entries are dispatched subagents, check their status (still active? errored? rate-limited? zombied?) using your host\'s task-listing mechanism before proceeding. See superpowers:subagent-driven-development for the watchdog cadence and host-specific tools.'
+        fi
+        resumption_section+=$'\n</superpowers-resumption-context>'
+    fi
+fi
+
+# Legacy skills warning (preserved from upstream).
 warning_message=""
 legacy_skills_dir="${HOME}/.config/superpowers/skills"
 if [ -d "$legacy_skills_dir" ]; then
-    warning_message="\n\n<important-reminder>IN YOUR FIRST REPLY AFTER SEEING THIS MESSAGE YOU MUST TELL THE USER:⚠️ **WARNING:** Superpowers now uses Claude Code's skills system. Custom skills in ~/.config/superpowers/skills will not be read. Move custom skills to ~/.claude/skills instead. To make this message go away, remove ~/.config/superpowers/skills</important-reminder>"
+    warning_message=$'\n\n<important-reminder>IN YOUR FIRST REPLY AFTER SEEING THIS MESSAGE YOU MUST TELL THE USER:⚠️ **WARNING:** Superpowers now uses Claude Code\'s skills system. Custom skills in ~/.config/superpowers/skills will not be read. Move custom skills to ~/.claude/skills instead. To make this message go away, remove ~/.config/superpowers/skills</important-reminder>'
 fi
 
-# Read using-superpowers content
 using_superpowers_content=$(cat "${PLUGIN_ROOT}/skills/using-superpowers/SKILL.md" 2>&1 || echo "Error reading using-superpowers skill")
 
 # Escape string for JSON embedding using bash parameter substitution.
-# Each ${s//old/new} is a single C-level pass - orders of magnitude
-# faster than the character-by-character loop this replaces.
 escape_for_json() {
     local s="$1"
     s="${s//\\/\\\\}"
@@ -32,12 +103,10 @@ escape_for_json() {
 
 using_superpowers_escaped=$(escape_for_json "$using_superpowers_content")
 warning_escaped=$(escape_for_json "$warning_message")
-session_context="<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n**Below is the full content of your 'superpowers:using-superpowers' skill - your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n${using_superpowers_escaped}\n\n${warning_escaped}\n</EXTREMELY_IMPORTANT>"
+resumption_escaped=$(escape_for_json "$resumption_section")
 
-# Output context injection as JSON.
-# Keep both shapes for compatibility:
-# - Cursor hooks expect additional_context.
-# - Claude hooks expect hookSpecificOutput.additionalContext.
+session_context="<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n**Below is the full content of your 'superpowers:using-superpowers' skill - your introduction to using skills. For all other skills, use the 'Skill' tool:**\n\n${using_superpowers_escaped}\n\n${warning_escaped}${resumption_escaped}\n</EXTREMELY_IMPORTANT>"
+
 cat <<EOF
 {
   "additional_context": "${session_context}",

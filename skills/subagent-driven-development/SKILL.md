@@ -321,3 +321,90 @@ Codex subagents do not share a task list. Use these conventions instead:
 
 **Alternative workflow:**
 - **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+
+---
+
+## Resilience: compaction recovery, watchdog cadence, and quality rotation
+
+Long autonomous runs degrade silently. Three failure modes are common enough to be designed for: a session compacts mid-pipeline and you forget what you were doing; a background subagent zombies / rate-limits / drifts off-task while you wait; one specific subagent_type is consistently low-quality but you keep re-prompting it. Apply the patterns below whenever you have subagents in flight.
+
+### 1. Compaction recovery
+
+Both lead-orchestrator and subagent sessions can compact during a long run. After any compaction or resume, before answering the next message, **re-orient first**:
+
+- Re-acknowledge the original task in your next reply ("Resuming: I was on step N of plan X").
+- Re-read the plan or design doc if it isn't fresh in your active context.
+- Re-check the status of any dispatched subagents before issuing new instructions.
+
+How the re-orientation context arrives depends on the host:
+
+<host: claude-code, cursor>
+
+Hooks automate it. The plugin's `SessionStart` hook (matcher `compact|resume`) fires inside the compacted session and injects a `<superpowers-resumption-context>` block containing:
+
+- The first user message from the transcript (the "original task") — this is what re-anchors a compacted **subagent** to its assignment.
+- Recent superpowers activity (last 30 entries from `.claude/superpowers-state/in-progress.jsonl`) — this is what re-anchors the **lead** in the pipeline.
+
+Activity is captured by a `PostToolUse` hook (matcher `Skill|Agent|Task`) that appends each invocation to the JSONL state file (capped at 200 lines; wiped on `startup|clear`). The state file is project-local at `.claude/superpowers-state/in-progress.jsonl`.
+
+You don't opt in. When you see the resumption block, treat it as authoritative and reorient before responding.
+
+</host>
+
+<host: codex, opencode>
+
+Hooks are not documented on this host. Apply the pattern manually: at the start of every reply that follows a context compaction, scroll back to the first user message in your visible transcript, re-state the task to yourself, then proceed. If you keep a running activity log in your scratch context, re-read it before issuing new subagent instructions.
+
+</host>
+
+### 2. Watchdog cadence (every 5–10 minutes)
+
+When you have one or more subagents running in the background, check on them on a 5–10 minute cadence. Don't fire-and-forget.
+
+**On each check, verify:**
+- Still running? A hung/zombied agent might not have produced any signal — explicit status confirms it's still active.
+- Producing output? An agent that has stopped emitting tool calls or text for >5 minutes is suspect.
+- Errored? Look for API errors, rate limits, transport failures, "context length exceeded" — these often surface as a stalled output stream rather than a crash.
+- Off-track? Spot-check that the latest output is actually progressing the assigned task, not flailing on a tangent.
+
+**If a subagent looks stuck:**
+- Send a corrective message to redirect (e.g. "you have been silent for 7 minutes; report current state and the next concrete step you will take").
+- If unrecoverable: terminate it, then re-dispatch a fresh subagent with the same brief plus a one-line note about what the prior attempt got wrong.
+
+<host: claude-code>
+
+Use `TaskList` to confirm active subagents, `TaskOutput` to read recent stdout, `SendMessage` (with `to: <agent-id-or-name>`) to send corrective input, and `TaskStop` to terminate. When using `ScheduleWakeup` to pace a `/loop` self-paced run, factor watchdog checks into the cadence — don't sleep past your next check window.
+
+</host>
+
+<host: codex>
+
+Codex doesn't expose a structured task list. Track dispatched subagents in your own scratch context (one line per subagent: id, started-at, last-checked-at, current-stage). On each watchdog interval, ask each subagent for a status report directly via its thread; "report your current step and what you plan to do next, in one paragraph" forces it to surface progress or admit it's stuck.
+
+</host>
+
+<host: opencode>
+
+Use `@mention` to peer sessions to ping each background subagent for a status report on cadence. If a peer has gone silent past the check window, treat it as suspect.
+
+</host>
+
+### 3. Quality-based rotation (replace consistently-failing teammates)
+
+Subagents are teammates, not infrastructure. If one keeps producing low-quality output, replace it instead of re-prompting forever.
+
+**Track per subagent_type, per session:**
+- Number of code-review rejections it produced (spec compliance OR code quality stage).
+- Number of times you had to send corrective input to redirect it.
+- Number of test/build failures attributable to its work.
+
+**Rotation triggers:**
+- 2 consecutive code-review rejections on the same task → switch to a different `subagent_type` for the retry, or escalate to a higher model tier (see `superpowers:model-tiers` agent).
+- 3 cumulative quality issues across tasks in one session → stop dispatching that subagent_type for the remainder of the session; re-route its work to an alternative.
+- A subagent that ignores explicit guidance twice in a row → stop using it; the issue is the agent profile, not the prompt.
+
+When you rotate, briefly state the rotation in user-facing text ("Rotating off `general-purpose` for review tasks — two consecutive rejections; using `superpowers:code-reviewer` instead") so the user has a chance to redirect.
+
+### Why these patterns
+
+The hook automation handles compaction recovery deterministically on hosts that support it. The watchdog cadence and rotation rules rely on you applying them consistently — without them, a subagent that compacts, hits a transient API error, or quietly drifts off-task can burn 30+ minutes before anyone notices.

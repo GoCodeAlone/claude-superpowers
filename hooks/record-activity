@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# PostToolUse hook: record superpowers-relevant activity
+#
+# Appends an entry to .claude/superpowers-state/in-progress.jsonl every time
+# the lead/orchestrator agent invokes the Skill or Agent tool. The
+# session-start hook replays this file on compact|resume so the agent can
+# resume the pipeline it was running and check on dispatched subagents.
+
+set -euo pipefail
+
+# Need stdin (the PostToolUse JSON payload) and jq to do anything useful.
+[ -t 0 ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+hook_input=$(cat || true)
+[ -z "$hook_input" ] && exit 0
+
+tool_name=$(printf '%s' "$hook_input" | jq -r '.tool_name // empty' 2>/dev/null || true)
+cwd_dir=$(printf '%s'   "$hook_input" | jq -r '.cwd // empty'        2>/dev/null || true)
+[ -z "$cwd_dir" ] && cwd_dir="${PWD}"
+
+case "$tool_name" in
+    Skill)
+        skill=$(printf '%s' "$hook_input" | jq -r '.tool_input.skill // ""' 2>/dev/null || true)
+        args=$(printf  '%s' "$hook_input" | jq -r '.tool_input.args  // ""' 2>/dev/null || true)
+        detail="skill=${skill}"
+        [ -n "$args" ] && detail="${detail} args=${args:0:80}"
+        ;;
+    Agent|Task)
+        sa_type=$(printf '%s' "$hook_input" | jq -r '.tool_input.subagent_type // "general-purpose"' 2>/dev/null || true)
+        desc=$(printf    '%s' "$hook_input" | jq -r '.tool_input.description   // ""'                 2>/dev/null || true)
+        bg=$(printf      '%s' "$hook_input" | jq -r '.tool_input.run_in_background // false'         2>/dev/null || true)
+        detail="agent=${sa_type} desc=\"${desc:0:120}\" bg=${bg}"
+        ;;
+    *)
+        exit 0
+        ;;
+esac
+
+STATE_DIR="${cwd_dir}/.claude/superpowers-state"
+mkdir -p "$STATE_DIR" 2>/dev/null || exit 0
+STATE_FILE="${STATE_DIR}/in-progress.jsonl"
+
+ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+jq -nc \
+    --arg ts     "$ts" \
+    --arg tool   "$tool_name" \
+    --arg detail "$detail" \
+    '{ts: $ts, tool: $tool, detail: $detail}' \
+    >> "$STATE_FILE" 2>/dev/null || true
+
+# Cap state file at 200 lines so it doesn't grow unbounded.
+if [ -f "$STATE_FILE" ] && [ "$(wc -l < "$STATE_FILE" 2>/dev/null || echo 0)" -gt 200 ]; then
+    tail -n 200 "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+fi
+
+exit 0
