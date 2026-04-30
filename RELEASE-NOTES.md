@@ -1,5 +1,61 @@
 # Superpowers Release Notes
 
+## v5.4.0 (2026-04-30)
+
+### New Features
+
+**Adversarial design / plan review (`skills/adversarial-design-review/`)**
+
+A new lifecycle stage that adversarially attacks the *ideas* in designs and plans — not just their structural coverage. Closes the only remaining gap in the review-gate stack: every other gate attacks code or structure; this one attacks ideas.
+
+Two phases, one skill:
+
+- **`--phase=design`** — invoked by `brainstorming` after the design doc is committed, before `writing-plans` runs.
+- **`--phase=plan`** — invoked by `writing-plans` after the plan is committed, before `alignment-check` runs.
+
+Mandatory bug-class checklist (design phase): unstated assumptions, repo-precedent conflicts, YAGNI violations, missing failure modes, security/privacy at architecture level, rollback story, simpler alternative not considered, user-intent drift. Plan phase adds: over/under-decomposition, verification-class mismatch, hidden serial dependencies, missing rollback wiring.
+
+Adversarial framing reused verbatim from `requesting-code-review` (find ≥3 things wrong; reflexive approval forbidden; full bug-class scan transcript required even on Clean). Every report MUST include a non-empty "Options the author may not have considered" section so reviewers offer alternatives, not just objections.
+
+PASS/FAIL with max 2 revision cycles per gate before user escalation, mirroring `alignment-check`. User overrides are recorded inline in the artifact.
+
+**Brainstorming: explicit assumptions + self-challenge round**
+
+`brainstorming` now requires:
+
+- An explicit list of load-bearing assumptions in every design ("we assume the upstream API is idempotent"). The design doc gets an `## Assumptions` section.
+- A lightweight self-challenge round before the design is presented to the user — five quick checks (laziest plausible solution? most fragile assumption? YAGNI? failure modes? repo-pattern conflicts?) that clean up obvious issues before the user sees the design.
+- An `## Rollback` section in the design for change classes that affect runtime (build, deployment, version pins, startup config, migrations, plugin loading) — same trigger list as `runtime-launch-validation`.
+
+The heavyweight pass remains `adversarial-design-review`; the self-challenge is intentionally lightweight.
+
+**Writing-plans: rollback notes for runtime-affecting tasks**
+
+For any task whose change class triggers `runtime-launch-validation`, the plan must now include a one-line rollback note in the task body ("Rollback: revert commit + re-run migration tool down + smoke check"). This makes the design's rollback story concretely traceable into the plan, so `adversarial-design-review --phase=plan` can verify it isn't an orphaned paragraph.
+
+**Pipeline rewiring**
+
+The autonomous pipeline now includes the new gates:
+
+```
+brainstorming → adversarial-design-review (design)
+              → writing-plans
+              → adversarial-design-review (plan)
+              → alignment-check
+              → subagent-driven-development
+              → finishing-a-development-branch → pr-monitoring
+```
+
+`alignment-check` is now scoped to **structural** trace only — adversarial concerns are cleared by the time it runs, so it stays narrow and fast.
+
+### Why
+
+Every existing review gate attacks code (`requesting-code-review`, spec-reviewer, code-reviewer, `verification-before-completion`) or structure (`alignment-check`). Nothing attacked the **ideas** in the design or plan themselves. Misconceptions, unstated assumptions, YAGNI features, and over-engineered approaches survived all the way to implementation, where they were the most expensive to fix. `adversarial-design-review` catches them at the cheapest stage. Stacking it on top of `alignment-check` is additive, not redundant — they catch different bug classes.
+
+### Roadmap
+
+`docs/roadmap.md` was added in this release to track items considered during the holistic evaluation that are not landing in this version: durable decision logs (ADRs), post-merge retrospective skill, skill-usage telemetry, brainstorming cost-control gate, and cross-skill consistency invariants. Each entry has a one-paragraph rationale and trigger condition.
+
 ## v5.3.0 (2026-04-29)
 
 ### New Features

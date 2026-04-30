@@ -5,6 +5,7 @@ host-neutral. Updated whenever a skill changes.
 
 | Skill | Claude Code | Codex | OpenCode | Cursor | Notes |
 |---|---|---|---|---|---|
+| adversarial-design-review | host-conditional | host-conditional | host-conditional | host-conditional | Agent dispatch block in `<host: claude-code>`; inline-execution prose in `<host: codex, opencode, cursor>` |
 | alignment-check | host-conditional | host-conditional | host-conditional | host-conditional | spawn block in `<host: claude-code>`; prose fallback outside |
 | brainstorming | host-conditional | host-conditional | host-conditional | host-conditional | `AskUserQuestion` in `<host: claude-code>`; numbered-list fallback in `<host: codex, opencode, cursor>` |
 | dispatching-parallel-agents | host-neutral | host-neutral | host-neutral | host-neutral | generic parallel-dispatch pattern; no tool-specific refs |

@@ -7,13 +7,15 @@ description: Use after writing-plans to verify the implementation plan covers al
 
 ## Overview
 
-Verify that an implementation plan faithfully covers every requirement in the approved design — nothing missing, nothing extra. This is an automated gate between planning and execution.
+Verify that an implementation plan faithfully covers every requirement in the approved design — nothing missing, nothing extra. This is an automated **structural** gate between planning and execution.
 
 **Core principle:** Every design requirement maps to a plan task. Every plan task traces to a design requirement. Drift in either direction is caught before execution begins.
 
+**Scope:** This skill is narrowly structural. It does NOT attack the ideas in the design or plan — that is the job of `adversarial-design-review`, which runs first (in autonomous mode) on both the design and the plan. By the time `alignment-check` runs, idea-level findings are already resolved; alignment is a forward + reverse trace, nothing more.
+
 ## When to Use
 
-Invoked automatically by `writing-plans` in autonomous mode. Can also be invoked manually after writing a plan.
+Invoked automatically by `writing-plans` in autonomous mode, **after** `adversarial-design-review --phase=plan` passes. Can also be invoked manually after writing a plan.
 
 ## The Process
 
@@ -125,7 +127,7 @@ Proceed to execution:
 ## Integration
 
 **Called by:**
-- `writing-plans` (autonomous mode) — after plan is written
+- `writing-plans` (autonomous mode) — after the plan is written AND `adversarial-design-review --phase=plan` has passed
 - Manual invocation — when user wants to verify alignment
 
 **Calls:**

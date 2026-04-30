@@ -37,15 +37,17 @@ When Claude's Plan Mode is not available, use the full planning process describe
 
 ## Autonomous Mode
 
-When invoked from brainstorming with autonomous context (design already approved):
+When invoked from brainstorming with autonomous context (design already approved AND adversarially reviewed):
 
 1. **Skip user plan review** — write the plan directly without presenting it for approval
-2. **Invoke `superpowers:alignment-check`** — dispatch the alignment verification agent
-3. **On alignment PASS** — invoke `superpowers:subagent-driven-development` to begin execution
-4. **On alignment FAIL** — revise the plan based on drift items, re-check (max 2 cycles)
-5. **On persistent FAIL** — escalate to user with unresolved drift summary
+2. **Invoke `superpowers:adversarial-design-review --phase=plan`** — adversarially attack the plan (and inherited design) before structural alignment is checked
+3. **On adversarial-review PASS** — invoke `superpowers:alignment-check`
+4. **On adversarial-review FAIL** — revise the plan based on Critical and Important findings, re-run adversarial review (max 2 cycles per gate)
+5. **On alignment PASS** — invoke `superpowers:subagent-driven-development` to begin execution
+6. **On alignment FAIL** — revise the plan based on drift items, re-check (max 2 cycles)
+7. **On persistent FAIL at any gate** — escalate to user with unresolved findings/drift summary
 
-The autonomous flag propagates through the entire pipeline: writing-plans → alignment-check → execution → PR creation → PR monitoring.
+The autonomous flag propagates through the entire pipeline: writing-plans → adversarial-design-review (plan phase) → alignment-check → execution → PR creation → PR monitoring.
 
 ## Design-only mode
 
@@ -59,11 +61,13 @@ Do not add YAML frontmatter to signal design-only mode. Saved plan documents mus
 
 1. Save the plan to `docs/plans/YYYY-MM-DD-<feature-name>.md` as normal.
 2. Commit the plan as normal.
-3. Invoke `superpowers:alignment-check` as normal.
-4. **On alignment PASS: STOP.** Do NOT invoke `superpowers:subagent-driven-development`.
-5. **On alignment FAIL:** revise the plan based on drift items and run `superpowers:alignment-check` again, with a maximum of 2 alignment-check cycles total. If a revised plan passes alignment, still STOP and do not proceed to execution.
-6. **On persistent FAIL after those 2 cycles:** escalate to the user with an unresolved drift summary. Do NOT invoke `superpowers:subagent-driven-development` or dispatch any execution.
-7. The plan + design sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `superpowers:subagent-driven-development` directly once alignment issues are resolved.
+3. Invoke `superpowers:adversarial-design-review --phase=plan` as normal.
+4. On adversarial-review FAIL: revise the plan based on findings and re-run adversarial review (max 2 cycles).
+5. On adversarial-review PASS: invoke `superpowers:alignment-check` as normal.
+6. **On alignment PASS: STOP.** Do NOT invoke `superpowers:subagent-driven-development`.
+7. **On alignment FAIL:** revise the plan based on drift items and run `superpowers:alignment-check` again, with a maximum of 2 alignment-check cycles total. If a revised plan passes alignment, still STOP and do not proceed to execution.
+8. **On persistent FAIL at any gate (after the cycle bound for that gate):** escalate to the user with an unresolved findings/drift summary. Do NOT invoke `superpowers:subagent-driven-development` or dispatch any execution.
+9. The plan + design + adversarial review reports sit in `docs/plans/` for future execution. The orchestrator (or a future invocation) can resume by passing the plan to `superpowers:subagent-driven-development` directly once gate issues are resolved.
 
 **When to use:**
 
@@ -71,7 +75,7 @@ Do not add YAML frontmatter to signal design-only mode. Saved plan documents mus
 - Cross-cutting designs that affect multiple workstreams; lock the design in before any one workstream starts.
 - Designs with prerequisites in-flight elsewhere; queue the plan now, execute when prerequisites land.
 
-**Default (no flag):** `superpowers:alignment-check` PASS → invoke `superpowers:subagent-driven-development`. Same as before.
+**Default (no flag):** `superpowers:adversarial-design-review --phase=plan` PASS → `superpowers:alignment-check` PASS → invoke `superpowers:subagent-driven-development`. Adversarial review runs **before** alignment check so that idea-level findings are resolved before structural trace.
 
 ## Verification per change class
 
@@ -92,7 +96,9 @@ When writing a plan task, the verification step must match the change class. A g
 
 These examples are illustrative minimums; per-task `Expected:` fields must be literal values the check can assert against.
 
-Every plan task must include the verification step appropriate to its change class, as defined in the table above. For tasks whose `finishing-a-development-branch` Step 1b trigger conditions are met (build configuration, deployment configuration, version pins on runtime components, startup configuration, migrations, plugin loading paths), include the runtime-launch-validation step in the TDD breakdown as well. Hook/trigger/event-handler changes are NOT in the Step 1b trigger list — they use only the class-appropriate verification from the table.
+Every plan task must include the verification step appropriate to its change class, as defined in the table above. For tasks whose `finishing-a-development-branch` Step 1b trigger conditions are met (build configuration, deployment configuration, version pins on runtime components, startup configuration, migrations, plugin loading paths), include the runtime-launch-validation step in the TDD breakdown as well **and include a one-line rollback note** in the task ("Rollback: revert commit + re-run migration tool down + smoke check"; "Rollback: pin to previous version X.Y.Z and rebuild"). Hook/trigger/event-handler changes are NOT in the Step 1b trigger list — they use only the class-appropriate verification from the table.
+
+The rollback note exists so that adversarial-design-review (plan phase) can verify the design's rollback story is actually wired into the plan, not orphaned in a paragraph. Plans without rollback notes for runtime-affecting tasks will fail adversarial review.
 
 The plan author writes the expected output literally — not "passes tests" but "logs `engine ready` within 10 seconds and `/healthz` returns 200".
 
@@ -177,13 +183,15 @@ git commit -m "feat: add specific feature"
 
 ### Autonomous Mode (from brainstorming pipeline)
 
-When running autonomously (design already approved, no user interaction):
+When running autonomously (design already approved AND adversarially reviewed, no user interaction):
 
 1. Save the plan to `docs/plans/<filename>.md`
 2. Commit the plan
-3. Invoke `superpowers:alignment-check` to verify design-to-plan alignment
-4. On PASS: invoke `superpowers:subagent-driven-development` (which uses Agent Teams when available)
-5. Do NOT ask the user for execution choice — the pipeline is autonomous
+3. Invoke `superpowers:adversarial-design-review --phase=plan` to attack the plan's ideas
+4. On adversarial-review PASS: invoke `superpowers:alignment-check` to verify design-to-plan structural alignment
+5. On alignment PASS: invoke `superpowers:subagent-driven-development` (which uses Agent Teams when available)
+6. On any FAIL: revise per findings/drift, re-run that gate (max 2 cycles per gate), then either continue or escalate to user
+7. Do NOT ask the user for execution choice — the pipeline is autonomous
 
 ### Manual Mode (direct invocation)
 

@@ -81,7 +81,7 @@ When multiple skills could apply, use this order:
 1. **Process skills first** (brainstorming, debugging) - these determine HOW to approach the task
 2. **Implementation skills second** (frontend-design, mcp-builder) - these guide execution
 3. **Pipeline skills auto-chain** — these invoke each other automatically in the autonomous pipeline:
-   brainstorming → writing-plans → alignment-check → subagent-driven-development → finishing-a-development-branch → pr-monitoring
+   brainstorming → adversarial-design-review (design phase) → writing-plans → adversarial-design-review (plan phase) → alignment-check → subagent-driven-development → finishing-a-development-branch → pr-monitoring
 
 "Let's build X" → brainstorming first, then the pipeline runs autonomously after design approval.
 "Fix this bug" → debugging first, then domain-specific skills.
