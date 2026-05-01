@@ -61,7 +61,7 @@ When running in the autonomous pipeline (invoked from subagent-driven-developmen
    EOF
    )"
    ```
-5. **Invoke pr-monitoring** — spawn one background monitor per PR created
+5. **Invoke pr-monitoring** — spawn a single background monitor that covers all PRs created in this session
 6. **Report PR URLs** — output every PR link for the user (one per row in the manifest's PR Grouping table)
 
 **Do NOT:**
