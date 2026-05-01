@@ -4,7 +4,8 @@
 # that could violate a locked scope manifest.
 #
 # Blocks:
-#   Bash tool  — git push --force / --force-with-lease / -f  (always; rewrites remote history)
+#   Bash tool  — SUPERPOWERS_* env var assignment (self-bypass prevention; always, before disable check)
+#              — git push --force / --force-with-lease / -f  (always; rewrites remote history)
 #              — git rebase -i / git reset --hard             (always; rewrites local history)
 #              — git push / gh pr create when locked plan hash mismatches
 #              — git push / git commit to main or master       (unless SUPERPOWERS_ALLOW_DEFAULT_BRANCH=1)
@@ -12,13 +13,14 @@
 #              — *.scope-lock files                            (unless SUPERPOWERS_SCOPE_LOCK_WRITE=1)
 #              — docs/plans/*.md when plan is Locked           (unless SUPERPOWERS_PLAN_LOCK_WRITE=1)
 #
-# Global opt-out: set SUPERPOWERS_HOOKS_DISABLE=1
+# Global opt-out: set SUPERPOWERS_HOOKS_DISABLE=1 in the *operator's* terminal
+# environment before starting the session. The agent cannot set this itself.
 
 set -euo pipefail
 
-[ "${SUPERPOWERS_HOOKS_DISABLE:-}" = "1" ] && exit 0
-
 # Require stdin (PreToolUse always sends a JSON payload).
+# Read input BEFORE the SUPERPOWERS_HOOKS_DISABLE check so the self-bypass
+# detector can fire regardless of the current disable-flag state.
 [ -t 0 ] && exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 
@@ -57,6 +59,21 @@ case "$tool_name" in
   Bash)
     cmd=$(printf '%s' "$hook_input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)
     [ -z "$cmd" ] && exit 0
+
+    # ── 0. Self-bypass prevention (ALWAYS first; NOT gated by SUPERPOWERS_HOOKS_DISABLE) ──
+    # An agent setting a SUPERPOWERS_* env var poisons its own shell session for
+    # subsequent tool calls, allowing it to bypass every downstream gate.
+    # Patterns caught:
+    #   export SUPERPOWERS_HOOKS_DISABLE=1
+    #   SUPERPOWERS_ALLOW_DEFAULT_BRANCH=1 git push origin main
+    #   env SUPERPOWERS_SCOPE_LOCK_WRITE=1 bash -c '...'
+    #   SUPERPOWERS_PLAN_LOCK_WRITE=1; git commit ...  (before semicolon)
+    if printf '%s' "$cmd" | grep -qE '(^|[;&|[:space:]])(export[[:space:]]+)?SUPERPOWERS_[A-Z_]+='; then
+        block "Self-bypass attempt blocked: setting a SUPERPOWERS_* environment variable from inside a Bash tool call is not permitted. These variables control pipeline enforcement gates and may only be set by the human operator in their terminal environment before starting the agent session. The agent cannot grant itself permission to bypass its own constraints — that would make the gates meaningless."
+    fi
+
+    # ── Global opt-out (operator-level only, checked after self-bypass guard) ──
+    [ "${SUPERPOWERS_HOOKS_DISABLE:-}" = "1" ] && exit 0
 
     # ── 1. Force push (always blocked) ──────────────────────────────────────
     # Catches: --force, --force-with-lease, -f flag
@@ -102,6 +119,9 @@ case "$tool_name" in
     ;;
 
   Write|Edit|MultiEdit)
+    # Operator-level global opt-out for file-write guards.
+    [ "${SUPERPOWERS_HOOKS_DISABLE:-}" = "1" ] && exit 0
+
     # Collect all file paths involved in the operation.
     if [ "$tool_name" = "MultiEdit" ]; then
         file_paths=$(printf '%s' "$hook_input" \
