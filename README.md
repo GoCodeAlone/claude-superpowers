@@ -101,27 +101,39 @@ Per-skill host-conditional audit: [tests/cross-llm-coverage.md](tests/cross-llm-
 
 ## The Basic Workflow
 
-1. **brainstorming** - Activates before writing code. Refines rough ideas through questions, explores alternatives, lists load-bearing assumptions, runs a self-challenge round, presents design in sections for validation. Saves design document.
+1. **brainstorming** - Activates before writing code. Refines rough ideas through questions, explores alternatives, lists load-bearing assumptions, runs a self-challenge round, presents design in sections for validation. Soft cap of 5 question-batches; on exceed, agent presents best-current-approximation and asks user to approve / refine / extend the budget. Saves design document.
 
 2. **adversarial-design-review (design phase)** - Activates after design doc is committed. Adversarially attacks the *ideas* in the design (not just structure): unstated assumptions, repo-precedent conflicts, YAGNI violations, missing failure modes, security gaps, rollback story, simpler alternatives, user-intent drift. PASS/FAIL with max 2 revision cycles.
 
-3. **using-git-worktrees** - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
+3. **recording-decisions** - Activates inside brainstorming and writing-plans whenever a non-trivial choice is made (divergence from precedent, trade-off between ≥2 plausible approaches, adversarial-review override, cross-skill structural change). Adds a numbered ADR in `decisions/` so the *why* survives renames and refactors.
 
-4. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps. Runtime-affecting tasks include rollback notes.
+4. **using-git-worktrees** - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
 
-5. **adversarial-design-review (plan phase)** - Activates after plan doc is committed. Inherits the design checklist plus plan-specific scans: task granularity, verification-class match, hidden serial dependencies, rollback wiring.
+5. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps. Runtime-affecting tasks include rollback notes.
 
-6. **alignment-check** - Activates after adversarial review of plan passes. Narrowly structural: every design requirement maps to a plan task; every plan task traces to a design requirement.
+6. **adversarial-design-review (plan phase)** - Activates after plan doc is committed. Inherits the design checklist plus plan-specific scans: task granularity, verification-class match, hidden serial dependencies, rollback wiring.
 
-7. **subagent-driven-development** or **executing-plans** - Activates with plan. Dispatches fresh subagent per task with two-stage review (spec compliance, then code quality), or executes in batches with human checkpoints.
+7. **alignment-check** - Activates after adversarial review of plan passes. Narrowly structural: every design requirement maps to a plan task; every plan task traces to a design requirement.
 
-8. **test-driven-development** - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit. Deletes code written before tests.
+8. **subagent-driven-development** or **executing-plans** - Activates with plan. Dispatches fresh subagent per task with two-stage review (spec compliance, then code quality), or executes in batches with human checkpoints.
 
-9. **requesting-code-review** - Activates between tasks. Reviews against plan, reports issues by severity. Critical issues block progress.
+9. **test-driven-development** - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit. Deletes code written before tests.
 
-10. **finishing-a-development-branch** - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
+10. **requesting-code-review** - Activates between tasks. Reviews against plan, reports issues by severity. Critical issues block progress.
+
+11. **finishing-a-development-branch** - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
+
+12. **pr-monitoring** - Activates after autonomous PR creation. Watches CI and review comments; fixes failures and responds to feedback until green.
+
+13. **post-merge-retrospective** - Activates after `pr-monitoring` exits successfully on a merged PR with green CI. Reads the design, plan, adversarial-review reports, code-review threads, and CI history; produces a short retro in `docs/retros/` scoring each adversarial finding (Prescient / Resolved upfront / False positive / Inconclusive), naming gate misses, and surfacing plugin-level follow-ups when patterns emerge across retros.
 
 **The agent checks for relevant skills before any task.** Mandatory workflows, not suggestions.
+
+## Auditing skill activations
+
+`tests/skill-activation-audit.sh` reads `.claude/superpowers-state/in-progress.jsonl` (the activity log written by the `record-activity` hook) and reports which pipeline gates fired during a session. Use it post-hoc when you want to confirm whether the autonomous pipeline ran end-to-end or stopped earlier than expected. Strictly local — never transmits anything.
+
+`tests/skill-cross-refs.sh` verifies that cross-skill references inside `skills/` and `agents/` markdown resolve (skill names, `Step N` references, `superpowers:<name>` mentions). Run it before committing any skill edit that renames a skill or renumbers a step.
 
 ## What's Inside
 
@@ -135,8 +147,9 @@ Per-skill host-conditional audit: [tests/cross-llm-coverage.md](tests/cross-llm-
 - **verification-before-completion** - Ensure it's actually fixed
 
 **Collaboration** 
-- **brainstorming** - Socratic design refinement (with assumption-listing and self-challenge round)
+- **brainstorming** - Socratic design refinement (with assumption-listing, self-challenge round, and a 5-batch question budget)
 - **adversarial-design-review** - Adversarial attack on design and plan ideas before execution (two phases: design, plan)
+- **recording-decisions** - ADRs in `decisions/` for non-trivial trade-offs and rejected alternatives
 - **writing-plans** - Detailed implementation plans
 - **executing-plans** - Batch execution with checkpoints
 - **alignment-check** - Structural design ↔ plan trace (forward + reverse)
@@ -145,6 +158,8 @@ Per-skill host-conditional audit: [tests/cross-llm-coverage.md](tests/cross-llm-
 - **receiving-code-review** - Responding to feedback
 - **using-git-worktrees** - Parallel development branches
 - **finishing-a-development-branch** - Merge/PR decision workflow
+- **pr-monitoring** - Watches CI and reviews after autonomous PR creation
+- **post-merge-retrospective** - Closes the loop on merged PRs; scores each adversarial finding and surfaces gate misses
 - **subagent-driven-development** - Fast iteration with two-stage review (spec compliance, then code quality)
 
 **Meta**

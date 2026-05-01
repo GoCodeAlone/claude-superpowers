@@ -100,6 +100,12 @@ Every plan task must include the verification step appropriate to its change cla
 
 The rollback note exists so that adversarial-design-review (plan phase) can verify the design's rollback story is actually wired into the plan, not orphaned in a paragraph. Plans without rollback notes for runtime-affecting tasks will fail adversarial review.
 
+## Recording decisions
+
+If the plan introduces a non-trivial choice that wasn't already captured by an ADR cited in the design (e.g., a library pick, a sync-vs-async choice, a polling-vs-webhook decision made at plan time rather than at design time), invoke `skills/recording-decisions/SKILL.md` to add an ADR in `decisions/` and cite it from the relevant task. ADRs are how the *why* survives renames and refactors; the design and plan answer *what*.
+
+If every decision in the plan is already covered by ADRs cited from the design, skip this step.
+
 The plan author writes the expected output literally — not "passes tests" but "logs `engine ready` within 10 seconds and `/healthz` returns 200".
 
 ## Bite-Sized Task Granularity

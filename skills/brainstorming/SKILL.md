@@ -113,6 +113,25 @@ If any answer surfaces a real issue, revise the design before presenting it. Oth
 
 This is intentionally lightweight; the heavyweight pass is `adversarial-design-review`, which runs after the design is committed.
 
+## Question-batch budget (cost-control gate)
+
+A brainstorming session has a **soft cap of 5 question-batches** before the agent must converge. A "batch" is one round-trip — one outgoing message that contains questions (whether one targeted follow-up or four AskUserQuestion-style options). The cap exists so a session cannot spiral indefinitely while the user keeps answering; convergence is a feature, not an accident.
+
+**Counting rule:** every outgoing message that asks the user a question counts as one batch, regardless of how many sub-questions it bundles. Re-asking a question to clarify the user's prior answer also counts. Pure status messages ("I'm exploring the codebase…") do not count.
+
+**On reaching the cap:**
+
+1. **Stop asking.** Do not send a 6th question batch.
+2. **Present the best-current-approximation design** using whatever signal you have. State explicitly which sections you are less confident about and why (which questions were not asked, which were answered ambiguously).
+3. **Ask the user, with three multiple-choice options, how to proceed:**
+   - **Approve as-is** — accept the approximation; proceed to design doc + adversarial review.
+   - **Refine specific sections** — name the sections; the agent gets ONE additional batch (capped at 4 questions) targeting those sections only, then re-presents.
+   - **Extend the budget** — explicit user opt-in to N more batches (user picks N; agent confirms before continuing).
+
+The "extend the budget" option exists because some genuinely complex designs need more conversation; the cap is soft, not a hard refusal. But the user must explicitly opt in — the agent cannot extend on its own.
+
+**Why a cap at all:** brainstorming is the most user-facing skill in the plugin. Question fatigue is a real failure mode. Capping at 5 batches forces the agent to commit to an approximation rather than stalling — and the user can always explicitly extend.
+
 ## Design-only mode
 
 When the user wants design exploration without execution, they pass `--design-only` to brainstorming.
@@ -133,7 +152,8 @@ When the user wants design exploration without execution, they pass `--design-on
 - Write the validated design to `docs/plans/YYYY-MM-DD-<topic>-design.md`
 - Include explicit `## Assumptions` and `## Rollback` sections (the latter only required for change classes that affect runtime — see the trigger list in `runtime-launch-validation` / `finishing-a-development-branch` Step 1b)
 - Use elements-of-style:writing-clearly-and-concisely skill if available
-- Commit the design document to git
+- **Record decisions** — if the design triggers any condition in `skills/recording-decisions/SKILL.md` (divergence from precedent, non-trivial trade-off between ≥2 plausible approaches, adversarial-review override, cross-skill structural change), invoke `recording-decisions` to add an ADR in `decisions/`, then cite it from this design doc
+- Commit the design document to git (and any new ADRs in the same commit)
 
 **Adversarial review (mandatory):**
 - Invoke `adversarial-design-review --phase=design` against the committed design

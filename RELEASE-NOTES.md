@@ -1,5 +1,68 @@
 # Superpowers Release Notes
 
+## v5.5.0 (2026-05-01)
+
+### New Features
+
+Five items that v5.4.0 deferred into a roadmap have shipped as actual functionality:
+
+**Decision log / ADRs (`skills/recording-decisions/`, `decisions/`)**
+
+Architecture Decision Records for non-trivial trade-offs and rejected alternatives. Numbered sequentially in `decisions/`, using Michael Nygard's three-section format (Context / Decision / Consequences) with a "Reversibility" addendum. The skill is light by design: a numbering rule, a template, a four-condition trigger, and a commit convention. Wired into `brainstorming` (when designs make non-trivial choices) and `writing-plans` (when plans introduce a non-obvious choice not already covered by an ADR cited from the design). The template lives at `decisions/0000-template.md`.
+
+**Post-merge retrospective (`skills/post-merge-retrospective/`, `docs/retros/`)**
+
+Closes the autonomous-pipeline loop. After `pr-monitoring` exits successfully on a merged PR with green CI and a design + plan in `docs/plans/`, this skill:
+
+- Scores each adversarial-review finding as Prescient / Resolved upfront / False positive / Inconclusive based on what showed up in code reviews and CI.
+- Walks every code-review comment and CI failure and names the gate that *should* have caught it earlier (gate misses = the actionable signal).
+- Verifies the expected pipeline gates fired using `tests/skill-activation-audit.sh`.
+- Produces a one-page retro at `docs/retros/YYYY-MM-DD-<feature>-retro.md`.
+- Surfaces plugin-level follow-ups when a gate miss recurs across multiple retros.
+
+Wired into `pr-monitoring`'s exit conditions. The retro is intentionally short — long retros don't get read.
+
+**Skill-usage telemetry (`tests/skill-activation-audit.sh`)**
+
+Parses `.claude/superpowers-state/in-progress.jsonl` (the activity log written by the existing `record-activity` PostToolUse hook) and reports which skills / agents fired during a session. Detects "expected but missing" pipeline gates by walking the canonical chain (brainstorming → adversarial-design-review → … → pr-monitoring). Strictly local; never transmits anything off the machine. Used directly by `post-merge-retrospective`. Exit code 2 when expected gates didn't fire so it can be wired into CI for automation runs.
+
+**Brainstorming cost-control gate (`skills/brainstorming/SKILL.md`)**
+
+Soft cap of 5 question-batches per brainstorming session. On exceed, the agent stops asking, presents a best-current-approximation design with confidence annotations, and gives the user three options: approve as-is, refine specific sections (one additional capped batch), or explicitly extend the budget. Convergence is now a feature, not an accident; question fatigue is a real failure mode and this cap addresses it without becoming a hard refusal.
+
+**Cross-skill consistency invariants (`tests/skill-cross-refs.sh`)**
+
+New test that scans `skills/**/SKILL.md` and `agents/*.md` for cross-references and verifies they resolve:
+
+- `<skill>/SKILL.md` paths and `superpowers:<name>` mentions resolve to either a skills directory or an `agents/<name>.md` file.
+- `<skill> Step <N>[a-z]?` references resolve to a heading or bold-line label in the cited skill.
+- Skips fenced code blocks (placeholder examples like `path/SKILL.md` inside ```code``` are not real references).
+
+Catches a class of silent rot that became more likely as v5.4.0 added cross-skill citations between `runtime-launch-validation`, `writing-plans`, `adversarial-design-review`, and `finishing-a-development-branch` Step 1b/1c.
+
+### Pipeline integration
+
+The autonomous chain now extends through the post-merge stage:
+
+```
+brainstorming → adversarial-design-review (design)
+              → writing-plans
+              → adversarial-design-review (plan)
+              → alignment-check
+              → subagent-driven-development
+              → finishing-a-development-branch
+              → pr-monitoring
+              → post-merge-retrospective
+```
+
+Cross-cutting: `recording-decisions` is invoked from inside brainstorming and writing-plans whenever a non-trivial choice is made.
+
+### Documentation
+
+- `docs/roadmap.md` rewritten — the previous "deferred" sections are now a "shipped as" mapping table; only the explicit "rejected" entries remain.
+- `README.md` "Basic Workflow" extended through stage 13 (post-merge-retrospective) with a new "Auditing skill activations" section.
+- `tests/cross-llm-coverage.md` adds rows for the two new skills.
+
 ## v5.4.0 (2026-04-30)
 
 ### New Features
@@ -54,7 +117,9 @@ Every existing review gate attacks code (`requesting-code-review`, spec-reviewer
 
 ### Roadmap
 
-`docs/roadmap.md` was added in this release to track items considered during the holistic evaluation that are not landing in this version: durable decision logs (ADRs), post-merge retrospective skill, skill-usage telemetry, brainstorming cost-control gate, and cross-skill consistency invariants. Each entry has a one-paragraph rationale and trigger condition.
+`docs/roadmap.md` was added in this release to track items considered during the holistic evaluation that did not land in this version: durable decision logs (ADRs), post-merge retrospective skill, skill-usage telemetry, brainstorming cost-control gate, and cross-skill consistency invariants. Each entry had a rationale and trigger condition.
+
+**Update for v5.5.0:** all five of those items have shipped as actual functionality. See the v5.5.0 entry above.
 
 ## v5.3.0 (2026-04-29)
 
