@@ -70,12 +70,19 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
     For each PR:
 
     ```bash
-    gh pr checks <number> --json name,state,conclusion
+    gh pr checks <number> --json name,state,conclusion,detailsUrl
     ```
 
     **If any check fails:**
-    a. Read the failure logs: `gh run view <run-id> --log-failed`
-    b. Identify the root cause
+    a. Extract the run ID from the `detailsUrl` field of the failing check
+       (the URL has the form `.../runs/<run-id>/...`):
+       ```bash
+       gh pr checks <number> --json name,state,conclusion,detailsUrl \
+         | jq '.[] | select(.conclusion == "FAILURE") | .detailsUrl'
+       # run-id is the numeric segment after /runs/ in that URL
+       ```
+    b. Read the failure logs: `gh run view <run-id> --log-failed`
+    c. Identify the root cause
     c. `cd` into that PR's worktree directory and confirm the branch:
        ```bash
        cd ../<branch>-monitor
@@ -97,7 +104,7 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
     ### 2. Check Review Comments (per PR)
 
     Use GraphQL to fetch review threads — this gives both the thread IDs needed
-    for resolution and the author login needed to detect bots:
+    for resolution and the author login and comment IDs needed to reply in-thread:
 
     ```bash
     gh api graphql -f query='
@@ -110,7 +117,12 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
                 isResolved
                 isOutdated
                 comments(first: 1) {
-                  nodes { author { login } body }
+                  nodes {
+                    databaseId
+                    url
+                    author { login }
+                    body
+                  }
                 }
               }
             }
@@ -118,6 +130,15 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
         }
       }
     ' -f owner=<owner> -f repo=<repo> -F number=<number>
+    ```
+
+    To reply to a review thread, use the REST API with the `databaseId` of the
+    first comment in the thread (the `in_reply_to_id` parameter):
+    ```bash
+    gh api repos/<owner>/<repo>/pulls/<number>/comments \
+      --method POST \
+      --field body="Addressed in <commit-sha>" \
+      --field in_reply_to_id=<databaseId>
     ```
 
     Also fetch any "CHANGES_REQUESTED" reviews:
@@ -156,7 +177,8 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
 
     **Safety:** Max 3 revision rounds per review comment. After 3, reply:
     "I've attempted to address this feedback but may need clarification. Flagging for manual review."
-    Then resolve the thread so it does not block the exit condition.
+    Leave the thread **unresolved** — do NOT resolve it, as that would mask the outstanding concern.
+    It will be surfaced in the timeout status report as needing manual intervention.
 
     ### 3. Check Exit Conditions
 
@@ -226,7 +248,7 @@ retro and exit cleanly.
 | Limit | Value | On Exceed |
 |-------|-------|-----------|
 | CI fix attempts per failure | 5 | Comment on PR, stop fixing that check |
-| Revision rounds per comment | 3 | Reply with escalation, resolve thread, move on |
+| Revision rounds per comment | 3 | Reply with escalation, leave thread unresolved, surface in timeout report |
 | Total monitoring duration | 60 min | Write timeout status report; orchestrator restarts a new monitor |
 | Poll interval | 10 min (600s) | — do not poll more frequently |
 | Push frequency | Max 1 per 60s | Queue fixes, batch push |

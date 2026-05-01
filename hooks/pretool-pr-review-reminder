@@ -40,14 +40,19 @@ escape_for_json() {
     printf '%s' "$s"
 }
 
-reminder="<IMPORTANT>"
-reminder+="Before and after running \`gh pr create\`:"
-reminder+=" (1) Ensure \`gh\` is version 2.88 or higher (\`gh --version\`)."
-reminder+=" If it is older, upgrade gh (e.g. \`gh upgrade\` or follow https://cli.github.com/manual/) or inform the user that a manual upgrade is needed."
-reminder+=" (2) After the PR is created, add Copilot as a reviewer by running:"
-reminder+=" \`gh pr edit <PR-number> --add-reviewer \"@copilot\"\`"
-reminder+=" Do NOT use \`--reviewer Copilot\` as a flag to \`gh pr create\` — the correct method is \`gh pr edit --add-reviewer \"@copilot\"\` post-creation."
-reminder+="</IMPORTANT>"
+reminder=$(cat <<'REMINDER'
+<IMPORTANT>
+Before and after running `gh pr create`:
+(1) Ensure `gh` is version 2.88 or higher (`gh --version`).
+    If it is older, upgrade gh (e.g. `gh upgrade` or follow https://cli.github.com/manual/)
+    or inform the user that a manual upgrade is needed.
+(2) After the PR is created, add Copilot as a reviewer by running:
+      gh pr edit <PR-number> --add-reviewer "@copilot"
+    Do NOT use `--reviewer Copilot` as a flag to `gh pr create` —
+    the correct method is `gh pr edit --add-reviewer "@copilot"` post-creation.
+</IMPORTANT>
+REMINDER
+)
 
 escaped=$(escape_for_json "$reminder")
 

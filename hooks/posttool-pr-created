@@ -34,17 +34,17 @@ cmd=$(printf '%s' "$hook_input" | jq -r '.tool_input.command // empty' 2>/dev/nu
 # Only act when the command created a PR (not a simple `gh pr list`, etc.).
 printf '%s' "$cmd" | grep -q 'gh pr create' || exit 0
 
-# Try to extract the PR URL from the tool response so the reminder is specific.
+# Try to extract the PR URL from the tool response to confirm the PR was created.
+# If no URL is found, gh pr create likely failed — do not inject the reminder.
 tool_response=$(printf '%s' "$hook_input" | jq -r '.tool_response // empty' 2>/dev/null || true)
 pr_url=$(printf '%s' "$tool_response" \
     | grep -oE 'https://github\.com/[^[:space:]]+/pull/[0-9]+' \
     | head -1 || true)
 
-if [ -n "$pr_url" ]; then
-    pr_hint="for the PR you just created: ${pr_url}"
-else
-    pr_hint="for the PR you just created"
-fi
+# Only remind when we can confirm a PR was successfully created.
+[ -z "$pr_url" ] && exit 0
+
+pr_hint="for the PR you just created: ${pr_url}"
 
 # Escape a string for embedding inside a JSON string value.
 escape_for_json() {
