@@ -113,6 +113,8 @@ When the autonomous pipeline is running and a user instruction is **ambiguous**,
 | "ship a demo" | partial scope + happy-path-only tests | there is no demo mode; either ship the locked manifest or invoke the unlock path |
 | "do whatever you think is best" | unilaterally restructure plan | do the locked manifest; surface choices not covered by the manifest |
 | "be efficient" / "be quick" | drop tests, drop reviews, drop tasks | run the pipeline at full discipline; speed comes from parallelism, not from skipping |
+| "go autonomous" / "run autonomously" / "auto mode" / "auto-mode" | treat as license to rescope, collapse PRs, skip pipeline discipline, or remove checkpoints | "autonomous" means running without interrupting the user — it does not relax any pipeline rule; all gates, checkpoints, and manifest constraints still apply |
+| "go ahead" / "continue" / "just do it" | proceed without pipeline gates; treat as blanket permission to rescope or collapse | proceed with the locked manifest as defined; if the next step is ambiguous under the lock, stop and ask rather than picking the looser reading |
 
 **When multiple strict interpretations remain plausible**, the agent stops and asks. Picking one and proceeding is not allowed. The cheapest place to catch a misinterpretation is before any commit; the most expensive is after a PR is opened.
 

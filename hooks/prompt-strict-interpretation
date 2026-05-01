@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+# hooks/prompt-strict-interpretation
+# UserPromptSubmit hook: injects a strict-interpretation reminder when the
+# user's prompt contains phrases that agents have historically used as license
+# to rescope, collapse PRs, or skip pipeline discipline — and a locked plan
+# exists in the current workspace.
+#
+# Does NOT block the prompt. Injects additional_context so the model sees the
+# reminder before it starts planning its response.
+#
+# Global opt-out: set SUPERPOWERS_HOOKS_DISABLE=1
+
+set -euo pipefail
+
+[ "${SUPERPOWERS_HOOKS_DISABLE:-}" = "1" ] && exit 0
+
+# Require stdin (UserPromptSubmit always sends a JSON payload).
+[ -t 0 ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+hook_input=$(cat || true)
+[ -z "$hook_input" ] && exit 0
+
+prompt=$(printf '%s' "$hook_input" | jq -r '.prompt // empty' 2>/dev/null || true)
+[ -z "$prompt" ] && exit 0
+
+cwd_dir=$(printf '%s' "$hook_input" | jq -r '.cwd // empty' 2>/dev/null || true)
+[ -z "$cwd_dir" ] && cwd_dir="${PWD}"
+
+# ── Check for trigger phrases ────────────────────────────────────────────────
+# These are phrases that agents have used as license to rescope on a locked plan.
+# Matching is case-insensitive. The list is intentionally broad because the cost
+# of a false positive (an extra reminder) is lower than the cost of a missed hit
+# (silent rescoping).
+
+matched_phrase=""
+
+check_phrase() {
+    local pattern="$1"
+    local label="$2"
+    if printf '%s' "$prompt" | grep -qiE "$pattern"; then
+        matched_phrase="$label"
+        return 0
+    fi
+    return 1
+}
+
+# Scope/task reordering
+check_phrase 'reorder[[:space:]]+(as[[:space:]]+needed|the[[:space:]]+(tasks?|steps?|prs?|work))' \
+    '"reorder as needed"' || true
+# PR creation shortcuts
+check_phrase '(create|open|submit|make|push|ship)[[:space:]]+(a[[:space:]]+)?pr\b' \
+    '"create a PR"' || true
+# Local-only testing as a skip
+check_phrase 'test[[:space:]]+local(ly)?|local[[:space:]]+(test|testing|run)' \
+    '"test locally"' || true
+# Demo-mode shortcuts
+check_phrase 'ship[[:space:]]+(a[[:space:]]+)?demo|demo[[:space:]]+(mode|it|this|version)|quick[[:space:]]+demo' \
+    '"ship a demo"' || true
+# Speed shortcuts
+check_phrase '\b(be[[:space:]]+(quick|fast|efficient|brief)|hurry|rush)\b' \
+    '"be quick/efficient"' || true
+# Vague delegation / scope bypass
+check_phrase '(make[[:space:]]+it[[:space:]]+work|just[[:space:]]+(get[[:space:]]+)?something[[:space:]]+(working|done|shipped))' \
+    '"make it work"' || true
+check_phrase '(do[[:space:]]+whatever[[:space:]]+you[[:space:]]+(think|want)|whatever[[:space:]]+you[[:space:]]+(think|want|feel)[[:space:]]+is[[:space:]]+best)' \
+    '"do whatever you think is best"' || true
+# Autonomous / auto-mode (new) — these phrases suggest the agent should
+# operate without discipline checks, which they explicitly do NOT authorize.
+check_phrase '(go|run|continue|proceed|work|operate)[[:space:]]+(fully[[:space:]]+)?autonomous(ly)?' \
+    '"run autonomously"' || true
+check_phrase 'auto[[:space:]]?mode|auto[[:space:]]?pilot' \
+    '"auto mode"' || true
+check_phrase '\bautonomous(ly)?\b' \
+    '"autonomously"' || true
+# "go ahead" / "go ahead and" — often used to grant blanket permission
+check_phrase 'go[[:space:]]+ahead([[:space:]]+and)?' \
+    '"go ahead"' || true
+# "just do it" / "just continue" — vague authorization
+check_phrase 'just[[:space:]]+(do|continue|proceed|execute|run)[[:space:]]+(it|this|that|everything|the[[:space:]]+rest)?' \
+    '"just do it"' || true
+# Explicit requests to skip checkpoints
+check_phrase '(without[[:space:]]+(stopping|pausing|checking|asking)|no[[:space:]]+(need[[:space:]]+to[[:space:]]+(stop|pause|check|ask|confirm))|don.?t[[:space:]]+(stop|pause|ask|check|confirm))' \
+    '"skip checkpoints"' || true
+
+# No trigger phrase found — nothing to inject.
+[ -z "$matched_phrase" ] && exit 0
+
+# ── Check for a locked plan ──────────────────────────────────────────────────
+plans_dir="${cwd_dir}/docs/plans"
+locked_plan=""
+locked_plan_name=""
+
+if [ -d "$plans_dir" ]; then
+    locked_plan=$(grep -rl '\*\*Status:\*\* Locked' "$plans_dir" 2>/dev/null \
+        | grep '\.md$' | grep -v '\.scope-lock' | head -1 || true)
+fi
+
+# No locked plan — the invariant only applies under a lock.
+[ -z "$locked_plan" ] && exit 0
+
+locked_plan_name=$(basename "$locked_plan")
+
+# ── Inject strict-interpretation reminder ────────────────────────────────────
+reminder=$(cat <<REMINDER
+⚠️  STRICT-INTERPRETATION GATE — LOCKED PLAN IN EFFECT
+
+Detected phrase: ${matched_phrase}
+Locked plan:     ${locked_plan_name}
+
+This phrase has historically been used as license to rescope, collapse PRs, or
+skip pipeline discipline. Under a Locked plan it authorizes NONE of those things.
+
+Mandated interpretations (from skills/using-superpowers/SKILL.md):
+
+  "reorder as needed"        → reorder tasks within the same PR only; manifest unchanged
+  "create a PR"              → create the number of PRs in the Scope Manifest's PR Grouping table
+  "test locally"             → run every task's declared verification steps; CI still runs
+  "make it work"             → implement the full manifest; surface blockers, do not trim scope
+  "ship a demo"              → no demo mode exists; ship the locked manifest or invoke unlock path
+  "be quick / be efficient"  → parallelism, not skipping
+  "go autonomous / auto mode"→ no discipline bypass; pipeline runs in full regardless
+  "go ahead / just do it"    → proceed with the locked manifest; gates still apply
+
+If the user's intent genuinely conflicts with the locked manifest, STOP and ask.
+Do not pick a looser interpretation and proceed. The locked manifest wins until
+the user goes through the unlock path (recording-decisions + re-run alignment-check).
+
+See skills/scope-lock/SKILL.md for the unlock path.
+REMINDER
+)
+
+# Escape for JSON embedding.
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+reminder_escaped=$(escape_for_json "$reminder")
+
+printf '{"additional_context":"%s"}\n' "$reminder_escaped"
+exit 0

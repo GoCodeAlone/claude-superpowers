@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# hooks/completion-claim-guard
+# Stop hook: blocks the agent from declaring success while a locked plan's
+# manifest hash fails verification — which indicates the plan was tampered with
+# directly (bypassing the unlock path) or the scope-lock file was corrupted.
+#
+# Also blocks if the plan-scope-check script reports structural problems with
+# any locked plan's manifest (inconsistent PR count, missing task IDs, etc.).
+#
+# To prevent infinite loops the hook honours the stop_hook_active flag: once
+# the agent has been told to continue and tries to stop again, the hook exits 0
+# and lets the stop proceed (the agent has had one chance to self-correct).
+#
+# Global opt-out: set SUPERPOWERS_HOOKS_DISABLE=1
+
+set -euo pipefail
+
+[ "${SUPERPOWERS_HOOKS_DISABLE:-}" = "1" ] && exit 0
+
+# Require stdin (Stop always sends a JSON payload).
+[ -t 0 ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+hook_input=$(cat || true)
+[ -z "$hook_input" ] && exit 0
+
+cwd_dir=$(printf '%s' "$hook_input" | jq -r '.cwd // empty' 2>/dev/null || true)
+[ -z "$cwd_dir" ] && cwd_dir="${PWD}"
+
+# Honour stop_hook_active to avoid infinite loops.
+# When true the agent was already told to continue once; let the stop proceed.
+stop_hook_active=$(printf '%s' "$hook_input" | jq -r '.stop_hook_active // false' 2>/dev/null || echo "false")
+[ "$stop_hook_active" = "true" ] && exit 0
+
+block() {
+    local reason="$1"
+    printf '{"decision":"block","reason":%s}\n' \
+        "$(printf '%s' "$reason" | jq -Rs .)"
+    exit 2
+}
+
+# ── Find locked plans ────────────────────────────────────────────────────────
+plans_dir="${cwd_dir}/docs/plans"
+[ -d "$plans_dir" ] || exit 0
+
+locked_plans=$(grep -rl '\*\*Status:\*\* Locked' "$plans_dir" 2>/dev/null \
+    | grep '\.md$' | grep -v '\.scope-lock' || true)
+
+[ -z "$locked_plans" ] && exit 0   # no locked plans — nothing to guard
+
+checker="${cwd_dir}/tests/plan-scope-check.sh"
+
+failures=""
+
+while IFS= read -r plan; do
+    [ -z "$plan" ] && continue
+    plan_name=$(basename "$plan")
+
+    # ── Hash verification: was the manifest edited behind the lock? ──────────
+    if [ -x "$checker" ]; then
+        if ! bash "$checker" --verify-lock "$plan" >/dev/null 2>&1; then
+            failures="${failures}  • ${plan_name}: Scope Manifest hash does not match the lock file (.scope-lock). The manifest was edited after it was locked, bypassing the unlock path.\n"
+        fi
+    fi
+
+    # ── Structural well-formedness: is the manifest internally consistent? ───
+    if [ -x "$checker" ]; then
+        if ! bash "$checker" --plan "$plan" >/dev/null 2>&1; then
+            failures="${failures}  • ${plan_name}: Scope Manifest is structurally inconsistent (PR count, task list, or table mismatch).\n"
+        fi
+    fi
+done <<< "$locked_plans"
+
+[ -z "$failures" ] && exit 0
+
+block "Completion blocked — scope-manifest integrity problems detected before stop:
+
+${failures}
+Resolve these before declaring done:
+  1. If the manifest was edited directly, go through the unlock path:
+     recording-decisions → update manifest → re-run alignment-check.
+  2. If the structural check failed, fix the manifest to match the plan body.
+  3. After resolving, run: tests/plan-scope-check.sh --verify-lock <plan>
+     and confirm it exits 0 before stopping.
+
+See skills/scope-lock/SKILL.md for the unlock path."

@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# hooks/subagent-scope-guard
+# SubagentStop hook: checks that a subagent did not modify protected files
+# (*.scope-lock, locked docs/plans/*.md) as part of its work.
+#
+# A subagent should never write scope-lock files directly (only alignment-check
+# via the scope-lock skill does that) and should never edit a locked plan file
+# (only the unlock path does that). If either is detected the subagent's stop
+# is blocked so the lead agent is alerted before the subagent's changes are
+# accepted.
+#
+# Honoured stop_hook_active flag to avoid infinite loops — the guard fires once.
+#
+# Global opt-out: set SUPERPOWERS_HOOKS_DISABLE=1
+
+set -euo pipefail
+
+[ "${SUPERPOWERS_HOOKS_DISABLE:-}" = "1" ] && exit 0
+
+[ -t 0 ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+hook_input=$(cat || true)
+[ -z "$hook_input" ] && exit 0
+
+cwd_dir=$(printf '%s' "$hook_input" | jq -r '.cwd // empty' 2>/dev/null || true)
+[ -z "$cwd_dir" ] && cwd_dir="${PWD}"
+
+stop_hook_active=$(printf '%s' "$hook_input" | jq -r '.stop_hook_active // false' 2>/dev/null || echo "false")
+[ "$stop_hook_active" = "true" ] && exit 0
+
+block() {
+    local reason="$1"
+    printf '{"decision":"block","reason":%s}\n' \
+        "$(printf '%s' "$reason" | jq -Rs .)"
+    exit 2
+}
+
+# ── Detect uncommitted or recently committed protected-file changes ───────────
+# We check both the working tree (uncommitted) and the last commit on HEAD
+# (just committed but not yet reviewed by the lead).
+violations=""
+
+# Working-tree and index modifications to protected files
+if command -v git >/dev/null 2>&1; then
+    (
+        cd "$cwd_dir" 2>/dev/null || exit 0
+
+        # Uncommitted changes to scope-lock files
+        scope_lock_dirty=$(git status --porcelain 2>/dev/null \
+            | awk '{print $2}' | grep '\.scope-lock$' || true)
+        if [ -n "$scope_lock_dirty" ]; then
+            while IFS= read -r f; do
+                violations="${violations}  • Uncommitted change to scope-lock file: ${f}\n"
+            done <<< "$scope_lock_dirty"
+        fi
+
+        # Uncommitted changes to docs/plans/*.md
+        plan_dirty=$(git status --porcelain 2>/dev/null \
+            | awk '{print $2}' | grep '^docs/plans/.*\.md$' | grep -v '\.scope-lock' || true)
+        if [ -n "$plan_dirty" ]; then
+            while IFS= read -r f; do
+                violations="${violations}  • Uncommitted change to plan file: ${f}\n"
+            done <<< "$plan_dirty"
+        fi
+
+        # Last commit: did it touch scope-lock or locked plan files?
+        if git rev-parse --verify HEAD >/dev/null 2>&1; then
+            last_commit_files=$(git diff-tree --no-commit-id -r --name-only HEAD 2>/dev/null || true)
+
+            lock_in_commit=$(printf '%s' "$last_commit_files" | grep '\.scope-lock$' || true)
+            if [ -n "$lock_in_commit" ]; then
+                while IFS= read -r f; do
+                    violations="${violations}  • Last commit modified scope-lock file: ${f}\n"
+                done <<< "$lock_in_commit"
+            fi
+
+            plans_in_commit=$(printf '%s' "$last_commit_files" \
+                | grep '^docs/plans/.*\.md$' | grep -v '\.scope-lock' || true)
+            if [ -n "$plans_in_commit" ]; then
+                while IFS= read -r f; do
+                    # Only flag if the plan is currently Locked
+                    if [ -f "$f" ] && grep -q '\*\*Status:\*\* Locked' "$f" 2>/dev/null; then
+                        violations="${violations}  • Last commit modified a Locked plan file: ${f}\n"
+                    fi
+                done <<< "$plans_in_commit"
+            fi
+        fi
+    )
+fi
+
+[ -z "$violations" ] && exit 0
+
+block "Subagent stop blocked — protected files were modified:
+
+${violations}
+Subagents must not write .scope-lock files or edit Locked plan files directly.
+These files are controlled exclusively by the scope-lock skill via the unlock path.
+
+Before this subagent's changes are accepted:
+  1. Revert the protected-file changes (git checkout -- <file>).
+  2. If a scope change is genuinely needed, surface it to the lead agent and
+     go through the unlock path: recording-decisions → update manifest →
+     re-run alignment-check.
+
+See skills/scope-lock/SKILL.md for the unlock path."
