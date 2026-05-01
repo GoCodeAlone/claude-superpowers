@@ -57,7 +57,15 @@ escape_for_json() {
     printf '%s' "$s"
 }
 
-reminder="<IMPORTANT>You just ran \`gh pr create\`. You MUST now invoke \`superpowers:pr-monitoring\` ${pr_hint}. Use a SINGLE monitoring agent that covers ALL PRs you have created in this session — do not spawn one agent per PR, as that risks rate-limiting. Draft PRs still trigger CI and receive bot reviews, so monitoring is required regardless of draft state. Do NOT declare the task complete until pr-monitoring has been started. See superpowers:pr-monitoring for usage.</IMPORTANT>"
+reminder="<IMPORTANT>"
+reminder+="You just ran \`gh pr create\`. "
+reminder+="You MUST now invoke \`superpowers:pr-monitoring\` ${pr_hint}. "
+reminder+="Use a SINGLE monitoring agent that covers ALL PRs you have created in this session"
+reminder+=" — do not spawn one agent per PR, as that risks rate-limiting. "
+reminder+="Draft PRs still trigger CI and receive bot reviews, so monitoring is required regardless of draft state. "
+reminder+="Do NOT declare the task complete until pr-monitoring has been started. "
+reminder+="See superpowers:pr-monitoring for usage."
+reminder+="</IMPORTANT>"
 
 escaped=$(escape_for_json "$reminder")
 
