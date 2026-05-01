@@ -47,9 +47,9 @@ If the PR was opened ad-hoc (no design / plan in `docs/plans/`), this skill exit
    For each unique CI failure on the branch, ask: was this caught by `verification-before-completion` / `runtime-launch-validation` / something else, or did it slip past every local gate? Slips are gate misses too.
 
 5. **Score skill activations.**
-   Read `.claude/superpowers-state/in-progress.jsonl` (if present in the repo's `.claude/` directory) and verify the expected pipeline ran:
+   Read `.claude/superpowers-state/in-progress.jsonl` (if present in the repo's `.claude/` directory) and verify the expected pipeline ran. The canonical chain documented in `skills/using-superpowers/SKILL.md` is:
    `brainstorming → adversarial-design-review (design) → writing-plans → adversarial-design-review (plan) → alignment-check → subagent-driven-development → finishing-a-development-branch → pr-monitoring → post-merge-retrospective`.
-   For each gate that was *expected* to fire and didn't, that's a missed-activation. Use `tests/skill-activation-audit.sh` (this repo) to confirm what fired.
+   For each gate that was *expected* to fire and didn't, that's a missed-activation. Use `tests/skill-activation-audit.sh` (this repo) to confirm what fired — note that the audit script reports each skill once even when invoked twice (e.g., adversarial-design-review for both phases), so cross-check phase counts against the JSONL `args=--phase=<design|plan>` entries when both phases are required.
 
 6. **Write the retro.**
    Save to `docs/retros/YYYY-MM-DD-<feature>-retro.md` using the format below. Commit it.

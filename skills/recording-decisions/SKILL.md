@@ -26,7 +26,11 @@ If none of the four conditions hold, an ADR is not required. ADRs are not for ev
 
 ## Process
 
-1. **Pick the next free number.** ADRs are numbered sequentially: `0000-template.md`, `0001-...md`, `0002-...md`. Run `ls decisions/ | grep -E '^[0-9]{4}-' | sort -n | tail -1` (or just `ls`) and increment.
+1. **Pick the next free number.** ADRs are numbered sequentially: `0000-template.md`, `0001-...md`, `0002-...md`. With four-digit zero-padded prefixes, lexicographic sort is equivalent to numeric sort:
+   ```bash
+   ls decisions/ | grep -E '^[0-9]{4}-' | sort | tail -1
+   ```
+   Take the prefix of the result and add 1.
 2. **Copy the template.**
    ```bash
    cp decisions/0000-template.md decisions/NNNN-<short-slug>.md

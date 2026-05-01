@@ -27,7 +27,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 failures=0
-tmp_failures="$(mktemp)"
+tmp_failures="$(mktemp)" || { echo "ERROR: mktemp failed" >&2; exit 3; }
 trap 'rm -f "$tmp_failures"' EXIT
 
 # Build the set of known skill names and agent names from the filesystem.

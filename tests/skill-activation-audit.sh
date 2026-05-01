@@ -28,7 +28,14 @@ for arg in "$@"; do
   case "$arg" in
     --quiet|-q) QUIET=1 ;;
     --help|-h)
-      sed -n '2,18p' "$0" | sed 's/^# //; s/^#//'
+      # Print the leading comment block (everything from line 2 up to the
+      # first non-comment line). Marker-based so the help text stays in
+      # sync if the header is edited.
+      awk '
+        NR==1 { next }                  # shebang
+        /^#/  { sub(/^# ?/, ""); print; next }
+        { exit }
+      ' "$0"
       exit 0
       ;;
     -*)
