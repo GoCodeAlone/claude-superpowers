@@ -18,8 +18,9 @@ Guide completion of development work by presenting clear options and handling ch
 When running in the autonomous pipeline (invoked from subagent-driven-development in autonomous mode):
 
 1. **Verify tests pass** — same as manual mode, abort if failing
-2. **Skip option presentation** — go directly to PR creation
-3. **Auto-push and create PR:**
+2. **Run Step 1d (Scope Completeness Check)** — see below. This is a mandatory gate in autonomous mode. The agent MUST NOT silently collapse N planned PRs into 1, nor declare success on a partial scope. If Step 1d surfaces a failure, the autonomous pipeline halts and asks the user.
+3. **Skip option presentation** — go directly to PR creation
+4. **For every PR row in the manifest's PR Grouping table, create one PR.** The manifest is the contract. If the table has 3 rows, the autonomous run produces 3 PRs, each pointing at the branch named in the row. Do NOT collapse rows — collapsing is the exact failure mode `skills/scope-lock/SKILL.md` defends against. Per-PR steps:
    ```bash
    feature_branch="<feature-branch>"
    feature_name="<feature-name>"
@@ -50,6 +51,9 @@ When running in the autonomous pipeline (invoked from subagent-driven-developmen
    ## Implementation Plan
    See: docs/plans/YYYY-MM-DD-<feature>.md
 
+   ## Scope Manifest
+   <copy the **PR Count**, **Tasks**, **Status** lines + this PR's row from the PR Grouping table>
+
    ## Changes
    <per-task summary of what was implemented>
 
@@ -57,8 +61,8 @@ When running in the autonomous pipeline (invoked from subagent-driven-developmen
    EOF
    )"
    ```
-4. **Invoke pr-monitoring** — spawn background agent to monitor CI and reviews
-5. **Report PR URL** — output the PR link for the user
+5. **Invoke pr-monitoring** — spawn one background monitor per PR created
+6. **Report PR URLs** — output every PR link for the user (one per row in the manifest's PR Grouping table)
 
 **Do NOT:**
 - Present the 4-option menu in autonomous mode
@@ -121,7 +125,32 @@ Action:
    ```
 4. Resolve before merging — bump the lagging pin, OR state explicitly why the skew is intentional and safe.
 
-If NOT triggered: skip this step and continue to Step 2.
+If NOT triggered: skip this step and continue to Step 1d.
+
+### Step 1d: Scope Completeness Check (mandatory)
+
+**Trigger:** always. This step is the gate that prevents the agent from declaring victory on a partial-scope solution.
+
+Action:
+
+1. Identify the plan: `docs/plans/YYYY-MM-DD-<feature>.md`. If there is no plan in `docs/plans/` for this branch (manual/ad-hoc work), skip this step.
+2. Run `bash tests/plan-scope-check.sh --plan <plan-path> --verify-lock <plan-path>`. The script verifies the manifest is well-formed and the locked hash still matches.
+3. **For every `### Task N:` heading in the plan body**, verify that a commit on the feature branch implements that task. Use the task's `**Files:**` block (`Create:` / `Modify:` / `Test:`) to map files to the task; `git log --oneline <base>..HEAD -- <file>` should show at least one commit per task.
+4. **Compute the actual PR count** for autonomous mode: count distinct branches in the manifest's PR Grouping `Branch` column that have commits ahead of base. This must equal `**PR Count:**` in the manifest.
+
+**On any failure of Step 1d:**
+
+- **Missing tasks:** stop. Do NOT create any PR. Report exactly which task(s) have no implementing commits, and ask the user one of:
+  > Tasks <list> have no implementing commits on this branch. Options:
+  > 1. Implement the missing tasks (preferred).
+  > 2. Approve a scope reduction — I will invoke `recording-decisions` to write an ADR removing those tasks from the manifest, then re-run `alignment-check` against the reduced design+plan.
+  > 3. Abort the PR creation; keep the branch as-is for inspection.
+  >
+  > Which option?
+- **PR count mismatch (autonomous mode):** if the manifest expects N PRs but the branch layout produced fewer, the agent must split the branch via `git rebase --onto` per the manifest's grouping table — NOT collapse the manifest. Collapsing N planned PRs into 1 is exactly the failure mode `scope-lock` exists to prevent.
+- **Locked-hash mismatch:** the manifest has been edited after the lock. Surface the diff and stop. The user must either revert the edit or go through the unlock path (`recording-decisions` + re-run alignment-check).
+
+Do not proceed past Step 1d on any failure without explicit user direction. There is no "demo mode" — see the anti-patterns in `skills/scope-lock/SKILL.md`.
 
 ### Step 2: Determine Base Branch
 

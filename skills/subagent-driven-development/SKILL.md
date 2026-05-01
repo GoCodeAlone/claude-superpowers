@@ -253,6 +253,13 @@ parallel agents. One subagent handles one task at a time; reviews happen between
 
 For each task in the plan:
 
+0. **Scope-lock checkpoint** — before dispatching the next task, run
+   `bash tests/plan-scope-check.sh --plan <plan-path> --verify-lock <plan-path>`. If it
+   exits non-zero, stop the line: the manifest has drifted from the locked hash, or
+   reality has drifted from the manifest. Surface the specific discrepancy to the user
+   and wait for instruction. Do NOT silently re-lock or proceed. See
+   `skills/scope-lock/SKILL.md` for the unlock path (which requires explicit user
+   approval and an ADR via `recording-decisions`).
 1. **Dispatch implementer subagent** — provide the full task text, the design doc path, and
    the working directory in the prompt. Use `./implementer-prompt.md` as the base template.
 2. **Answer questions** if the implementer surfaces blockers.
@@ -264,7 +271,7 @@ For each task in the plan:
 7. If quality issues found → implementer fixes → re-review until approved.
 8. Mark task complete and move to the next.
 
-After all tasks: invoke `superpowers:finishing-a-development-branch`.
+After all tasks: run `bash tests/plan-scope-check.sh --plan <plan-path> --verify-lock <plan-path>` one final time, then invoke `superpowers:finishing-a-development-branch`. If the scope check fails, do not invoke finishing — surface the discrepancy first.
 
 <host: codex>
 
@@ -290,6 +297,10 @@ Codex subagents do not share a task list. Use these conventions instead:
 **Never:**
 - Start implementation on main/master without explicit user consent
 - Skip reviews (spec compliance OR code quality)
+- Skip the scope-lock checkpoint between tasks (Step 0 in Sequential Mode; equivalent watchdog cadence in Agent Teams Mode — see Resilience section)
+- Drop a task because it turned out to be hard. Surface the obstruction to the user; the unlock path in `skills/scope-lock/SKILL.md` is the only sanctioned way to remove a task from the manifest.
+- Add a task that isn't in the manifest. Discovering "we also need X" mid-execution is not a license to silently add it. Either it's already covered by an existing task, or it's a manifest amendment (which requires going back through brainstorming for the new scope).
+- Collapse PRs. The manifest's PR Grouping table is a contract; if it has 3 rows, the work ships as 3 PRs.
 - Proceed with unfixed issues
 - Make subagents/teammates read plan files — provide full text in the prompt instead
 - Skip scene-setting context in any subagent prompt

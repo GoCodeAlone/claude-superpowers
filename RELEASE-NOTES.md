@@ -1,5 +1,194 @@
 # Superpowers Release Notes
 
+## v5.6.0 (2026-05-01)
+
+### Why this release exists
+
+A user reported the agent going off the rails: told to "continue autonomously, create a PR, test locally, reorder as needed", the agent (a) reinterpreted "reorder as needed" as license to rescope, (b) collapsed a 6-PR plan into 1 PR, (c) shipped partial scope as a "demo". Each step looked plausible in isolation. Cumulatively, the contract was lost.
+
+This release adds the gates that make each of those steps individually visible and individually blockable.
+
+### New skill: `scope-lock`
+
+Once `alignment-check` returns PASS, the plan's task list, PR count, and feature scope are **locked**. The lock is enforced by:
+
+- A required `## Scope Manifest` section in every plan, declaring `**PR Count:**`, `**Tasks:**`, `**Out of scope:**`, and a `**PR Grouping:**` table mapping tasks → PRs → branches.
+- A `Status:` line stamped `Locked <UTC ISO-8601 timestamp>` after alignment passes.
+- A `<plan>.scope-lock` file containing the sha256 of the manifest section, committed alongside the locked plan.
+- A re-check of the lock at every per-task checkpoint in `subagent-driven-development` and before any PR creation in `finishing-a-development-branch`.
+
+Unlock is heavyweight and explicit: the user must approve the specific tasks/PRs being dropped, an ADR is written via `recording-decisions`, the manifest is updated, and `alignment-check` re-runs against the reduced plan. Cheap unlock = no lock at all.
+
+There is no "demo mode". Either the locked manifest ships, or the unlock path runs.
+
+### New test: `tests/plan-scope-check.sh`
+
+Three modes:
+
+- `--plan <path>` — manifest well-formedness: `**PR Count:**` matches the PR Grouping table row count; every Task ID in the table exists as a `### Task N:` heading in the body; every body task appears in exactly one PR row; `**Out of scope:**` is present (legacy plans without any manifest are grandfathered unless `--strict` is passed).
+- `--verify-lock <path>` — verifies the manifest's current sha256 matches `<path>.scope-lock`. Catches post-lock tampering.
+- `--against-branch <path>` — verifies every branch listed in the PR Grouping table exists locally or on origin. Catches the "collapsed N PRs into 1" failure mode at PR-creation time.
+
+Exit codes: `0` clean / `1` failures / `3` usage error. Wirable into CI.
+
+### New invariant: strict-interpretation rule (in `using-superpowers`)
+
+When the autonomous pipeline is running and a user instruction is ambiguous, the agent MUST pick the **most-faithful-to-the-locked-manifest** interpretation. A table mapping common ambiguous phrases to their forbidden-loose and mandated-strict readings:
+
+| Phrase | ❌ Loose | ✅ Strict |
+|---|---|---|
+| "reorder as needed" | rescope, drop tasks | reorder tasks within the same PR |
+| "create a PR" | one PR for whatever subset | the number of PRs in the manifest |
+| "test locally" | skip CI | run every plan task's verification |
+| "ship a demo" | partial scope, happy-path | no demo mode; ship locked manifest |
+| "be efficient" | drop tests/reviews/tasks | speed comes from parallelism, not skipping |
+
+When multiple strict interpretations remain plausible, the agent stops and asks. Picking one and proceeding is forbidden.
+
+### Wired into existing skills
+
+- **`writing-plans`** — every plan MUST start with the `## Scope Manifest` block; `**Base branch:**` added to the header. The PR Grouping table is the contract `scope-lock` enforces. Authoring rules added to prevent empty `Out of scope:` and orphan tasks.
+- **`alignment-check`** — third trace added (manifest trace) on top of forward and reverse. Runs `tests/plan-scope-check.sh --plan` as part of the gate. After PASS, invokes `scope-lock` to stamp and hash. Drift items now include `MANIFEST DRIFT`, `UNSCOPED`, `COUNT MISMATCH`.
+- **`subagent-driven-development`** — Sequential Mode adds Step 0 "scope-lock checkpoint" before each task dispatch. Red-flags expanded with explicit prohibitions on dropping/adding tasks, collapsing PRs, and skipping the per-task scope check.
+- **`finishing-a-development-branch`** — new Step 1d "Scope Completeness Check" verifies every manifest task has implementing commits and that the manifest's PR count matches reality. Autonomous mode now creates one PR per row in the PR Grouping table; collapsing is a stop-the-line error. PR body template includes a Scope Manifest section.
+- **`recording-decisions`** — fifth trigger condition added: user-approved scope reduction. ADR is cited from the manifest's `Status: Reduced …` line and from each PR body shipped under the reduced manifest.
+- **`pr-monitoring`** — autonomous mode spawns one monitor per PR (manifest-driven), not one monitor per branch.
+- **`using-superpowers`** — pipeline auto-chain extended with explicit `scope-lock` step between alignment-check and subagent-driven-development. Strict-interpretation invariant added.
+
+### Documentation
+
+- `README.md` workflow extended to 14 stages (scope-lock inserted at 8); new "Strict-interpretation invariant" section.
+- `tests/cross-llm-coverage.md` — row added for `scope-lock` (host-neutral; pure markdown + shell).
+
+### Versioning
+
+5.5.0 → 5.6.0 across `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.cursor-plugin/plugin.json`.
+
+### Backward compatibility
+
+Plans created before v5.6.0 do not have a `## Scope Manifest` section. `tests/plan-scope-check.sh` grandfathers them by default; pass `--strict` to require the manifest on all plans (e.g., for CI on a fresh-start repo). New plans created via `writing-plans` from v5.6.0 onward always include the manifest.
+
+## v5.5.0 (2026-05-01)
+
+### New Features
+
+Five items that v5.4.0 deferred into a roadmap have shipped as actual functionality:
+
+**Decision log / ADRs (`skills/recording-decisions/`, `decisions/`)**
+
+Architecture Decision Records for non-trivial trade-offs and rejected alternatives. Numbered sequentially in `decisions/`, using Michael Nygard's three-section format (Context / Decision / Consequences) with a "Reversibility" addendum. The skill is light by design: a numbering rule, a template, a four-condition trigger, and a commit convention. Wired into `brainstorming` (when designs make non-trivial choices) and `writing-plans` (when plans introduce a non-obvious choice not already covered by an ADR cited from the design). The template lives at `decisions/0000-template.md`.
+
+**Post-merge retrospective (`skills/post-merge-retrospective/`, `docs/retros/`)**
+
+Closes the autonomous-pipeline loop. After `pr-monitoring` exits successfully on a merged PR with green CI and a design + plan in `docs/plans/`, this skill:
+
+- Scores each adversarial-review finding as Prescient / Resolved upfront / False positive / Inconclusive based on what showed up in code reviews and CI.
+- Walks every code-review comment and CI failure and names the gate that *should* have caught it earlier (gate misses = the actionable signal).
+- Verifies the expected pipeline gates fired using `tests/skill-activation-audit.sh`.
+- Produces a one-page retro at `docs/retros/YYYY-MM-DD-<feature>-retro.md`.
+- Surfaces plugin-level follow-ups when a gate miss recurs across multiple retros.
+
+Wired into `pr-monitoring`'s exit conditions. The retro is intentionally short — long retros don't get read.
+
+**Skill-usage telemetry (`tests/skill-activation-audit.sh`)**
+
+Parses `.claude/superpowers-state/in-progress.jsonl` (the activity log written by the existing `record-activity` PostToolUse hook) and reports which skills / agents fired during a session. Detects "expected but missing" pipeline gates by walking the canonical chain (brainstorming → adversarial-design-review → … → pr-monitoring). Strictly local; never transmits anything off the machine. Used directly by `post-merge-retrospective`. Exit code 2 when expected gates didn't fire so it can be wired into CI for automation runs.
+
+**Brainstorming cost-control gate (`skills/brainstorming/SKILL.md`)**
+
+Soft cap of 5 question-batches per brainstorming session. On exceed, the agent stops asking, presents a best-current-approximation design with confidence annotations, and gives the user three options: approve as-is, refine specific sections (one additional capped batch), or explicitly extend the budget. Convergence is now a feature, not an accident; question fatigue is a real failure mode and this cap addresses it without becoming a hard refusal.
+
+**Cross-skill consistency invariants (`tests/skill-cross-refs.sh`)**
+
+New test that scans `skills/**/SKILL.md` and `agents/*.md` for cross-references and verifies they resolve:
+
+- `<skill>/SKILL.md` paths and `superpowers:<name>` mentions resolve to either a skills directory or an `agents/<name>.md` file.
+- `<skill> Step <N>[a-z]?` references resolve to a heading or bold-line label in the cited skill.
+- Skips fenced code blocks (placeholder examples like `path/SKILL.md` inside ```code``` are not real references).
+
+Catches a class of silent rot that became more likely as v5.4.0 added cross-skill citations between `runtime-launch-validation`, `writing-plans`, `adversarial-design-review`, and `finishing-a-development-branch` Step 1b/1c.
+
+### Pipeline integration
+
+The autonomous chain now extends through the post-merge stage:
+
+```
+brainstorming → adversarial-design-review (design)
+              → writing-plans
+              → adversarial-design-review (plan)
+              → alignment-check
+              → subagent-driven-development
+              → finishing-a-development-branch
+              → pr-monitoring
+              → post-merge-retrospective
+```
+
+Cross-cutting: `recording-decisions` is invoked from inside brainstorming and writing-plans whenever a non-trivial choice is made.
+
+### Documentation
+
+- `docs/roadmap.md` rewritten — the previous "deferred" sections are now a "shipped as" mapping table; only the explicit "rejected" entries remain.
+- `README.md` "Basic Workflow" extended through stage 13 (post-merge-retrospective) with a new "Auditing skill activations" section.
+- `tests/cross-llm-coverage.md` adds rows for the two new skills.
+
+## v5.4.0 (2026-04-30)
+
+### New Features
+
+**Adversarial design / plan review (`skills/adversarial-design-review/`)**
+
+A new lifecycle stage that adversarially attacks the *ideas* in designs and plans — not just their structural coverage. Closes the only remaining gap in the review-gate stack: every other gate attacks code or structure; this one attacks ideas.
+
+Two phases, one skill:
+
+- **`--phase=design`** — invoked by `brainstorming` after the design doc is committed, before `writing-plans` runs.
+- **`--phase=plan`** — invoked by `writing-plans` after the plan is committed, before `alignment-check` runs.
+
+Mandatory bug-class checklist (design phase): unstated assumptions, repo-precedent conflicts, YAGNI violations, missing failure modes, security/privacy at architecture level, rollback story, simpler alternative not considered, user-intent drift. Plan phase adds: over/under-decomposition, verification-class mismatch, hidden serial dependencies, missing rollback wiring.
+
+Adversarial framing reused verbatim from `requesting-code-review` (find ≥3 things wrong; reflexive approval forbidden; full bug-class scan transcript required even on Clean). Every report MUST include a non-empty "Options the author may not have considered" section so reviewers offer alternatives, not just objections.
+
+PASS/FAIL with max 2 revision cycles per gate before user escalation, mirroring `alignment-check`. User overrides are recorded inline in the artifact.
+
+**Brainstorming: explicit assumptions + self-challenge round**
+
+`brainstorming` now requires:
+
+- An explicit list of load-bearing assumptions in every design ("we assume the upstream API is idempotent"). The design doc gets an `## Assumptions` section.
+- A lightweight self-challenge round before the design is presented to the user — five quick checks (laziest plausible solution? most fragile assumption? YAGNI? failure modes? repo-pattern conflicts?) that clean up obvious issues before the user sees the design.
+- An `## Rollback` section in the design for change classes that affect runtime (build, deployment, version pins, startup config, migrations, plugin loading) — same trigger list as `runtime-launch-validation`.
+
+The heavyweight pass remains `adversarial-design-review`; the self-challenge is intentionally lightweight.
+
+**Writing-plans: rollback notes for runtime-affecting tasks**
+
+For any task whose change class triggers `runtime-launch-validation`, the plan must now include a one-line rollback note in the task body ("Rollback: revert commit + re-run migration tool down + smoke check"). This makes the design's rollback story concretely traceable into the plan, so `adversarial-design-review --phase=plan` can verify it isn't an orphaned paragraph.
+
+**Pipeline rewiring**
+
+The autonomous pipeline now includes the new gates:
+
+```
+brainstorming → adversarial-design-review (design)
+              → writing-plans
+              → adversarial-design-review (plan)
+              → alignment-check
+              → subagent-driven-development
+              → finishing-a-development-branch → pr-monitoring
+```
+
+`alignment-check` is now scoped to **structural** trace only — adversarial concerns are cleared by the time it runs, so it stays narrow and fast.
+
+### Why
+
+Every existing review gate attacks code (`requesting-code-review`, spec-reviewer, code-reviewer, `verification-before-completion`) or structure (`alignment-check`). Nothing attacked the **ideas** in the design or plan themselves. Misconceptions, unstated assumptions, YAGNI features, and over-engineered approaches survived all the way to implementation, where they were the most expensive to fix. `adversarial-design-review` catches them at the cheapest stage. Stacking it on top of `alignment-check` is additive, not redundant — they catch different bug classes.
+
+### Roadmap
+
+`docs/roadmap.md` was added in this release to track items considered during the holistic evaluation that did not land in this version: durable decision logs (ADRs), post-merge retrospective skill, skill-usage telemetry, brainstorming cost-control gate, and cross-skill consistency invariants. Each entry had a rationale and trigger condition.
+
+**Update for v5.5.0:** all five of those items have shipped as actual functionality. See the v5.5.0 entry above.
+
 ## v5.3.0 (2026-04-29)
 
 ### New Features

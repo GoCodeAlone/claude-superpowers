@@ -84,7 +84,10 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
     - No unresolved review comments
     - No pending "changes requested" reviews
 
-    On exit, report final status.
+    On exit:
+    - If the PR is merged AND base-branch CI is green for the merge commit AND a design + plan exist in `docs/plans/` for this branch, invoke `superpowers:post-merge-retrospective` to produce a retro in `docs/retros/`. This is the autonomous closing-the-loop step.
+    - If the PR is closed without merge, skip the retrospective and exit cleanly.
+    - Report final status either way.
 
     ### 4. Wait Between Checks
 
@@ -100,6 +103,8 @@ Use your host's equivalent mechanism to periodically poll the following in a loo
 - `gh api repos/<owner>/<repo>/pulls/<number>/reviews` — handle any "CHANGES_REQUESTED" reviews
 
 Continue until all checks pass, no unresolved inline comments remain, and no "changes requested" reviews are pending.
+
+When the PR has merged with green base-branch CI and a design + plan exist in `docs/plans/` for this branch, invoke `superpowers:post-merge-retrospective` to write a retro in `docs/retros/`. If the PR was closed without merge, skip the retro and exit cleanly.
 
 </host>
 
@@ -117,6 +122,9 @@ Continue until all checks pass, no unresolved inline comments remain, and no "ch
 
 **Called by:**
 - `finishing-a-development-branch` (autonomous mode) — after PR creation
+
+**Calls:**
+- `superpowers:post-merge-retrospective` — on its own clean exit when the PR has merged with green base-branch CI
 
 **Uses:**
 - `gh` CLI for all GitHub operations

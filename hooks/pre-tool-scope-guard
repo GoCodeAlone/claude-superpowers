@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+# hooks/pre-tool-scope-guard
+# PreToolUse hook: blocks destructive git operations and protected-file edits
+# that could violate a locked scope manifest.
+#
+# Blocks:
+#   Bash tool  — SUPERPOWERS_* env var assignment (self-bypass prevention; always, before disable check)
+#              — git push --force / --force-with-lease / -f  (always; rewrites remote history)
+#              — git rebase -i / git reset --hard             (always; rewrites local history)
+#              — git push / gh pr create when locked plan hash mismatches
+#              — git push / git commit to main or master       (unless SUPERPOWERS_ALLOW_DEFAULT_BRANCH=1)
+#   Write / Edit / MultiEdit tool
+#              — *.scope-lock files                            (unless SUPERPOWERS_SCOPE_LOCK_WRITE=1)
+#              — docs/plans/*.md when plan is Locked           (unless SUPERPOWERS_PLAN_LOCK_WRITE=1)
+#
+# Global opt-out: set SUPERPOWERS_HOOKS_DISABLE=1 in the *operator's* terminal
+# environment before starting the session. The agent cannot set this itself.
+
+set -euo pipefail
+
+# Require stdin (PreToolUse always sends a JSON payload).
+# Read input BEFORE the SUPERPOWERS_HOOKS_DISABLE check so the self-bypass
+# detector can fire regardless of the current disable-flag state.
+[ -t 0 ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+hook_input=$(cat || true)
+[ -z "$hook_input" ] && exit 0
+
+tool_name=$(printf '%s' "$hook_input" | jq -r '.tool_name // empty' 2>/dev/null || true)
+cwd_dir=$(printf '%s'   "$hook_input" | jq -r '.cwd // empty'        2>/dev/null || true)
+[ -z "$cwd_dir" ] && cwd_dir="${PWD}"
+
+# Output a block decision and exit 2 (the exit code Claude Code uses for blocks).
+block() {
+    local reason="$1"
+    printf '{"decision":"block","reason":%s}\n' \
+        "$(printf '%s' "$reason" | jq -Rs .)"
+    exit 2
+}
+
+# Return the path of the first locked plan found under docs/plans/, or empty.
+find_locked_plan() {
+    local plans_dir="${cwd_dir}/docs/plans"
+    [ -d "$plans_dir" ] || return 0
+    grep -rl '\*\*Status:\*\* Locked' "$plans_dir" 2>/dev/null \
+        | grep '\.md$' | grep -v '\.scope-lock' | head -1 || true
+}
+
+# Run plan-scope-check --verify-lock; returns 0 if hash matches.
+verify_lock() {
+    local plan="$1"
+    local checker="${cwd_dir}/tests/plan-scope-check.sh"
+    [ -x "$checker" ] || return 0   # no checker present — pass through
+    bash "$checker" --verify-lock "$plan" >/dev/null 2>&1
+}
+
+case "$tool_name" in
+  Bash)
+    cmd=$(printf '%s' "$hook_input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)
+    [ -z "$cmd" ] && exit 0
+
+    # ── 0. Self-bypass prevention (ALWAYS first; NOT gated by SUPERPOWERS_HOOKS_DISABLE) ──
+    # An agent setting a SUPERPOWERS_* env var poisons its own shell session for
+    # subsequent tool calls, allowing it to bypass every downstream gate.
+    # Patterns caught:
+    #   export SUPERPOWERS_HOOKS_DISABLE=1
+    #   SUPERPOWERS_ALLOW_DEFAULT_BRANCH=1 git push origin main
+    #   env SUPERPOWERS_SCOPE_LOCK_WRITE=1 bash -c '...'
+    #   SUPERPOWERS_PLAN_LOCK_WRITE=1; git commit ...  (before semicolon)
+    # Not blocked (benign debugging/grepping):
+    #   echo "SUPERPOWERS_HOOKS_DISABLE=1"
+    #   grep 'SUPERPOWERS_.*=' file
+    # Best-effort: strip single- and double-quoted strings before checking so
+    # that mentions of SUPERPOWERS_* inside quoted arguments don't trigger a
+    # false-positive block.
+    cmd_no_quotes=$(printf '%s' "$cmd" | sed "s/\"[^\"]*\"//g; s/'[^']*'//g")
+    if printf '%s' "$cmd_no_quotes" | grep -qE '(^|[;&|[:space:]])(export[[:space:]]+)?SUPERPOWERS_[A-Z_]+='; then
+        block "Self-bypass attempt blocked: setting a SUPERPOWERS_* environment variable from inside a Bash tool call is not permitted. These variables control pipeline enforcement gates and may only be set by the human operator in their terminal environment before starting the agent session. The agent cannot grant itself permission to bypass its own constraints — that would make the gates meaningless."
+    fi
+
+    # ── Global opt-out (operator-level only, checked after self-bypass guard) ──
+    [ "${SUPERPOWERS_HOOKS_DISABLE:-}" = "1" ] && exit 0
+
+    # ── 1. Force push (always blocked) ──────────────────────────────────────
+    # Catches: --force, --force-with-lease, -f flag
+    # These overwrite remote refs and lose commits for anyone who already pulled.
+    if printf '%s' "$cmd" | grep -q 'git push' && \
+       printf '%s' "$cmd" | grep -qE '(--force-with-lease|--force| -f( |$)| -f$)'; then
+        block "Force push blocked — rewrites remote history and permanently discards commits that others may have pulled. During autonomous pipeline execution this is never acceptable. If the remote branch genuinely needs correction, stop and get explicit user approval. Unlock path: ask the user, then proceed manually with SUPERPOWERS_HOOKS_DISABLE=1 scoped to that one command."
+    fi
+
+    # ── 2. Local history rewrites (always blocked) ──────────────────────────
+    # git rebase -i: interactive rebase rewrites commit SHAs.
+    # git reset --hard: destructively discards work-tree and commit history.
+    if printf '%s' "$cmd" | grep -qE 'git (rebase[[:space:]]+-i|rebase[[:space:]].*-i|reset[[:space:]]+--hard)'; then
+        block "Destructive history rewrite blocked (git rebase -i or git reset --hard). These commands alter commit history and can discard work irreversibly. Stop and ask the user whether this is genuinely intended before proceeding."
+    fi
+
+    # ── 3. push / PR creation while locked plan hash mismatches ─────────────
+    # Catches post-lock plan tampering before anything reaches the remote.
+    if printf '%s' "$cmd" | grep -qE '(git push|gh pr create|gh pr merge)'; then
+        locked_plan=$(find_locked_plan)
+        if [ -n "$locked_plan" ]; then
+            if ! verify_lock "$locked_plan"; then
+                block "Locked plan hash mismatch: $(basename "$locked_plan") — the Scope Manifest has been modified since it was locked. This means either the plan was edited directly (bypassing the unlock path) or the scope-lock file was corrupted. Resolve via the scope-lock unlock path (recording-decisions → update manifest → re-run alignment-check) before pushing or creating PRs."
+            fi
+        fi
+    fi
+
+    # ── 4. Push/commit to default branch (blocked unless opt-out) ───────────
+    if printf '%s' "$cmd" | grep -qE 'git (push|commit)' && \
+       [ "${SUPERPOWERS_ALLOW_DEFAULT_BRANCH:-}" != "1" ]; then
+        # Explicit main/master push target
+        if printf '%s' "$cmd" | grep -qE 'git push.+(origin[[:space:]]+(main|master)|HEAD:(main|master)|(main|master):[[:space:]]*(main|master))'; then
+            block "Pushing directly to main or master is blocked during autonomous pipeline execution. Work on a feature branch and open a PR for review. If this is genuinely intentional, set SUPERPOWERS_ALLOW_DEFAULT_BRANCH=1 in your environment and retry the command manually."
+        fi
+        # Bare 'git push' or 'git push origin' when current branch is main/master
+        if printf '%s' "$cmd" | grep -qE 'git push[[:space:]]*(origin[[:space:]]*)?$'; then
+            current_branch=$(cd "$cwd_dir" && git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+            if [ "$current_branch" = "main" ] || [ "$current_branch" = "master" ]; then
+                block "Current branch is '${current_branch}' (the default branch). Pushing directly to main or master is blocked during autonomous pipeline execution. Switch to a feature branch first. To override, set SUPERPOWERS_ALLOW_DEFAULT_BRANCH=1."
+            fi
+        fi
+    fi
+    ;;
+
+  Write|Edit|MultiEdit)
+    # Operator-level global opt-out for file-write guards.
+    [ "${SUPERPOWERS_HOOKS_DISABLE:-}" = "1" ] && exit 0
+
+    # Collect all file paths involved in the operation.
+    if [ "$tool_name" = "MultiEdit" ]; then
+        file_paths=$(printf '%s' "$hook_input" \
+            | jq -r '.tool_input.edits[]?.file_path // empty' 2>/dev/null || true)
+    else
+        file_paths=$(printf '%s' "$hook_input" \
+            | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)
+    fi
+
+    while IFS= read -r fpath; do
+        [ -z "$fpath" ] && continue
+
+        # ── 5. scope-lock files (always blocked unless sentinel env var) ─────
+        if printf '%s' "$fpath" | grep -qE '\.scope-lock$'; then
+            if [ "${SUPERPOWERS_SCOPE_LOCK_WRITE:-}" != "1" ]; then
+                block "Writing to '$(basename "$fpath")' is blocked — .scope-lock files are written exclusively by the scope-lock skill during alignment-check PASS. Direct edits break the manifest integrity guarantee and allow silent scope tampering. To update the lock legitimately: go through the unlock path (recording-decisions → update manifest → re-run alignment-check), which will regenerate the lock file."
+            fi
+        fi
+
+        # ── 6. Locked plan files (blocked unless sentinel env var) ──────────
+        if printf '%s' "$fpath" | grep -qE 'docs/plans/[^/]+\.md$'; then
+            if [ "${SUPERPOWERS_PLAN_LOCK_WRITE:-}" != "1" ] && [ -f "$fpath" ]; then
+                if grep -q '\*\*Status:\*\* Locked' "$fpath" 2>/dev/null; then
+                    block "Editing '$(basename "$fpath")' is blocked — this plan is Locked. Direct plan edits bypass the unlock path and silently break the manifest hash. To modify the plan: (1) invoke recording-decisions to document the approved scope reduction as an ADR, (2) follow the scope-lock unlock path (update manifest → re-stamp lock). The unlock path is defined in skills/scope-lock/SKILL.md."
+                fi
+            fi
+        fi
+    done <<< "$file_paths"
+    ;;
+esac
+
+exit 0
