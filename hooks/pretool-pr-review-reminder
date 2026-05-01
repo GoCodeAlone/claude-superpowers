@@ -34,7 +34,7 @@ printf '%s' "$cmd" | grep -q 'gh pr create' || exit 0
 
 # Pass through if Copilot is already listed as a reviewer.
 # Matches: --reviewer Copilot  --reviewer=Copilot  (case-insensitive on "copilot")
-if printf '%s' "$cmd" | grep -qiE -- '--reviewer[[:space:]=][^[:space:]]*copilot'; then
+if printf '%s' "$cmd" | grep -qiE -- '--reviewer[[:space:]=]copilot'; then
     exit 0
 fi
 

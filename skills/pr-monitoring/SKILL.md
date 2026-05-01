@@ -62,20 +62,62 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
 
     ### 2. Check Review Comments
 
+    Use GraphQL to fetch review threads — this gives both the thread IDs needed
+    for resolution and the author login needed to detect bots:
+
     ```bash
-    gh api repos/<owner>/<repo>/pulls/<number>/comments --jq '.[] | select(.position != null) | {id, body, path, line: .original_line, user: .user.login}'
-    gh api repos/<owner>/<repo>/pulls/<number>/reviews --jq '.[] | select(.state == "CHANGES_REQUESTED") | {id, body, user: .user.login}'
+    gh api graphql -f query='
+      query($owner: String!, $repo: String!, $number: Int!) {
+        repository(owner: $owner, name: $repo) {
+          pullRequest(number: $number) {
+            reviewThreads(first: 100) {
+              nodes {
+                id
+                isResolved
+                isOutdated
+                comments(first: 1) {
+                  nodes { author { login } body }
+                }
+              }
+            }
+          }
+        }
+      }
+    ' -f owner=<owner> -f repo=<repo> -F number=<number>
     ```
 
-    **If new unresolved comments found:**
+    Also fetch any "CHANGES_REQUESTED" reviews:
+
+    ```bash
+    gh api repos/<owner>/<repo>/pulls/<number>/reviews \
+      --jq '.[] | select(.state == "CHANGES_REQUESTED") | {id, body, user: .user.login}'
+    ```
+
+    **Bot detection:** treat a commenter as a bot if their login ends in `[bot]`
+    or matches a known review bot (e.g. `copilot`, `github-advanced-security`,
+    `datadog`, `codeclimate`, `sonarcloud`). Apply the same address-then-resolve
+    flow to bot comments as to human comments.
+
+    **If new unresolved, non-outdated threads are found:**
     a. Read the comment carefully
     b. Implement the requested change
     c. Run tests to verify
     d. Commit and push
     e. Reply to the comment: "Addressed in <commit-sha>"
+    f. **Resolve the thread** (required for all comments, especially bot comments):
+       ```bash
+       gh api graphql -f query='
+         mutation($threadId: ID!) {
+           resolveReviewThread(input: {threadId: $threadId}) {
+             thread { isResolved }
+           }
+         }
+       ' -f threadId="<thread-id>"
+       ```
 
     **Safety:** Max 3 revision rounds per review comment. After 3, reply:
     "I've attempted to address this feedback but may need clarification. Flagging for manual review."
+    Then resolve the thread so it does not block the exit condition.
 
     ### 3. Check Exit Conditions
 
@@ -99,10 +141,10 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
 
 Use your host's equivalent mechanism to periodically poll the following in a loop:
 - `gh pr checks <number>` — fix any failing CI checks
-- `gh api repos/<owner>/<repo>/pulls/<number>/comments` — respond to inline review comments
+- GraphQL `reviewThreads` query — fetch unresolved, non-outdated threads; address each one, reply "Addressed in <commit-sha>", then resolve the thread via the `resolveReviewThread` GraphQL mutation. Apply this to bot comments (any login ending in `[bot]`, or known bots such as `copilot`, `github-advanced-security`, `datadog`) the same as human comments.
 - `gh api repos/<owner>/<repo>/pulls/<number>/reviews` — handle any "CHANGES_REQUESTED" reviews
 
-Continue until all checks pass, no unresolved inline comments remain, and no "changes requested" reviews are pending.
+Continue until all checks pass, no unresolved inline threads remain, and no "changes requested" reviews are pending.
 
 When the PR has merged with green base-branch CI and a design + plan exist in `docs/plans/` for this branch, invoke `superpowers:post-merge-retrospective` to write a retro in `docs/retros/`. If the PR was closed without merge, skip the retro and exit cleanly.
 
