@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 # hooks/pretool-pr-review-reminder
-# PreToolUse hook: blocks gh pr create unless --reviewer Copilot is included.
+# PreToolUse hook: reminds the agent to add Copilot as a reviewer after creating a PR.
 #
-# When an agent runs gh pr create without requesting Copilot as a reviewer the
-# PR is created without automated code review.  This hook intercepts the command
-# before it runs and blocks it with a clear instruction to add the flag, so the
-# agent retries with Copilot in the reviewer list.
-#
-# Copilot is specified as a reviewer with --reviewer Copilot (the exact handle
-# GitHub uses for its built-in AI code-review feature).
+# When an agent is about to run gh pr create, inject a reminder about:
+#   1. gh CLI version requirement (v2.88+)
+#   2. Adding Copilot as a reviewer via `gh pr edit --add-reviewer "@copilot"`
+#      immediately after the PR is created (not as a flag to gh pr create).
 #
 # Global opt-out: set SUPERPOWERS_HOOKS_DISABLE=1
 
@@ -32,29 +29,28 @@ cmd=$(printf '%s' "$hook_input" | jq -r '.tool_input.command // empty' 2>/dev/nu
 # Only act on PR creation commands.
 printf '%s' "$cmd" | grep -q 'gh pr create' || exit 0
 
-# Pass through if Copilot is already listed as a reviewer.
-# Handles all gh reviewer syntaxes (case-insensitive on "copilot"):
-#   --reviewer Copilot
-#   --reviewer=Copilot
-#   --reviewer user1,Copilot   (copilot after a comma-separated peer)
-#   --reviewer Copilot,user2   (copilot before a comma-separated peer)
-#   --reviewer user1 --reviewer Copilot  (multiple flags; second flag matched)
-if printf '%s' "$cmd" | grep -qiE -- '--reviewer[[:space:]=]([^[:space:]]*,)*copilot'; then
-    exit 0
-fi
-
-block() {
-    local reason="$1"
-    printf '{"decision":"block","reason":%s}\n' \
-        "$(printf '%s' "$reason" | jq -Rs .)"
-    exit 2
+# Escape a string for embedding inside a JSON string value.
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
 }
 
-block "Add Copilot as a code reviewer before creating this PR.
-Re-run the command with: --reviewer Copilot
+reminder="<IMPORTANT>"
+reminder+="Before and after running \`gh pr create\`:"
+reminder+=" (1) Ensure \`gh\` is version 2.88 or higher (\`gh --version\`)."
+reminder+=" If it is older, upgrade gh (e.g. \`gh upgrade\` or follow https://cli.github.com/manual/) or inform the user that a manual upgrade is needed."
+reminder+=" (2) After the PR is created, add Copilot as a reviewer by running:"
+reminder+=" \`gh pr edit <PR-number> --add-reviewer \"@copilot\"\`"
+reminder+=" Do NOT use \`--reviewer Copilot\` as a flag to \`gh pr create\` — the correct method is \`gh pr edit --add-reviewer \"@copilot\"\` post-creation."
+reminder+="</IMPORTANT>"
 
-Example:
-  gh pr create --title \"...\" --body \"...\" --reviewer Copilot
+escaped=$(escape_for_json "$reminder")
 
-Copilot reviews run automatically on the PR diff and catch issues before
-human reviewers see the PR. Do not skip this flag."
+printf '{"additional_context":"%s"}\n' "$escaped"
+
+exit 0
