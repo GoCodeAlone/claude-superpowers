@@ -1,5 +1,73 @@
 # Superpowers Release Notes
 
+## v5.6.0 (2026-05-01)
+
+### Why this release exists
+
+A user reported the agent going off the rails: told to "continue autonomously, create a PR, test locally, reorder as needed", the agent (a) reinterpreted "reorder as needed" as license to rescope, (b) collapsed a 6-PR plan into 1 PR, (c) shipped partial scope as a "demo". Each step looked plausible in isolation. Cumulatively, the contract was lost.
+
+This release adds the gates that make each of those steps individually visible and individually blockable.
+
+### New skill: `scope-lock`
+
+Once `alignment-check` returns PASS, the plan's task list, PR count, and feature scope are **locked**. The lock is enforced by:
+
+- A required `## Scope Manifest` section in every plan, declaring `**PR Count:**`, `**Tasks:**`, `**Out of scope:**`, and a `**PR Grouping:**` table mapping tasks → PRs → branches.
+- A `Status:` line stamped `Locked <UTC ISO-8601 timestamp>` after alignment passes.
+- A `<plan>.scope-lock` file containing the sha256 of the manifest section, committed alongside the locked plan.
+- A re-check of the lock at every per-task checkpoint in `subagent-driven-development` and before any PR creation in `finishing-a-development-branch`.
+
+Unlock is heavyweight and explicit: the user must approve the specific tasks/PRs being dropped, an ADR is written via `recording-decisions`, the manifest is updated, and `alignment-check` re-runs against the reduced plan. Cheap unlock = no lock at all.
+
+There is no "demo mode". Either the locked manifest ships, or the unlock path runs.
+
+### New test: `tests/plan-scope-check.sh`
+
+Three modes:
+
+- `--plan <path>` — manifest well-formedness: `**PR Count:**` matches the PR Grouping table row count; every Task ID in the table exists as a `### Task N:` heading in the body; every body task appears in exactly one PR row; `**Out of scope:**` is present (legacy plans without any manifest are grandfathered unless `--strict` is passed).
+- `--verify-lock <path>` — verifies the manifest's current sha256 matches `<path>.scope-lock`. Catches post-lock tampering.
+- `--against-branch <path>` — verifies every branch listed in the PR Grouping table exists locally or on origin. Catches the "collapsed N PRs into 1" failure mode at PR-creation time.
+
+Exit codes: `0` clean / `1` failures / `3` usage error. Wirable into CI.
+
+### New invariant: strict-interpretation rule (in `using-superpowers`)
+
+When the autonomous pipeline is running and a user instruction is ambiguous, the agent MUST pick the **most-faithful-to-the-locked-manifest** interpretation. A table mapping common ambiguous phrases to their forbidden-loose and mandated-strict readings:
+
+| Phrase | ❌ Loose | ✅ Strict |
+|---|---|---|
+| "reorder as needed" | rescope, drop tasks | reorder tasks within the same PR |
+| "create a PR" | one PR for whatever subset | the number of PRs in the manifest |
+| "test locally" | skip CI | run every plan task's verification |
+| "ship a demo" | partial scope, happy-path | no demo mode; ship locked manifest |
+| "be efficient" | drop tests/reviews/tasks | speed comes from parallelism, not skipping |
+
+When multiple strict interpretations remain plausible, the agent stops and asks. Picking one and proceeding is forbidden.
+
+### Wired into existing skills
+
+- **`writing-plans`** — every plan MUST start with the `## Scope Manifest` block; `**Base branch:**` added to the header. The PR Grouping table is the contract `scope-lock` enforces. Authoring rules added to prevent empty `Out of scope:` and orphan tasks.
+- **`alignment-check`** — third trace added (manifest trace) on top of forward and reverse. Runs `tests/plan-scope-check.sh --plan` as part of the gate. After PASS, invokes `scope-lock` to stamp and hash. Drift items now include `MANIFEST DRIFT`, `UNSCOPED`, `COUNT MISMATCH`.
+- **`subagent-driven-development`** — Sequential Mode adds Step 0 "scope-lock checkpoint" before each task dispatch. Red-flags expanded with explicit prohibitions on dropping/adding tasks, collapsing PRs, and skipping the per-task scope check.
+- **`finishing-a-development-branch`** — new Step 1d "Scope Completeness Check" verifies every manifest task has implementing commits and that the manifest's PR count matches reality. Autonomous mode now creates one PR per row in the PR Grouping table; collapsing is a stop-the-line error. PR body template includes a Scope Manifest section.
+- **`recording-decisions`** — fifth trigger condition added: user-approved scope reduction. ADR is cited from the manifest's `Status: Reduced …` line and from each PR body shipped under the reduced manifest.
+- **`pr-monitoring`** — autonomous mode spawns one monitor per PR (manifest-driven), not one monitor per branch.
+- **`using-superpowers`** — pipeline auto-chain extended with explicit `scope-lock` step between alignment-check and subagent-driven-development. Strict-interpretation invariant added.
+
+### Documentation
+
+- `README.md` workflow extended to 14 stages (scope-lock inserted at 8); new "Strict-interpretation invariant" section.
+- `tests/cross-llm-coverage.md` — row added for `scope-lock` (host-neutral; pure markdown + shell).
+
+### Versioning
+
+5.5.0 → 5.6.0 across `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.cursor-plugin/plugin.json`.
+
+### Backward compatibility
+
+Plans created before v5.6.0 do not have a `## Scope Manifest` section. `tests/plan-scope-check.sh` grandfathers them by default; pass `--strict` to require the manifest on all plans (e.g., for CI on a fresh-start repo). New plans created via `writing-plans` from v5.6.0 onward always include the manifest.
+
 ## v5.5.0 (2026-05-01)
 
 ### New Features

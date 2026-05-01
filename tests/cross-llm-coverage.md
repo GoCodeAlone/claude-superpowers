@@ -9,6 +9,7 @@ host-neutral. Updated whenever a skill changes.
 | alignment-check | host-conditional | host-conditional | host-conditional | host-conditional | spawn block in `<host: claude-code>`; prose fallback outside |
 | post-merge-retrospective | host-conditional | host-conditional | host-conditional | host-conditional | Inline-vs-subagent decision block in `<host: claude-code>`; inline-only prose in `<host: codex, opencode, cursor>` |
 | recording-decisions | host-neutral | host-neutral | host-neutral | host-neutral | ADR storage protocol; no host-specific tooling |
+| scope-lock | host-neutral | host-neutral | host-neutral | host-neutral | Pure markdown + shell-script invariant; no host-specific tooling |
 | brainstorming | host-conditional | host-conditional | host-conditional | host-conditional | `AskUserQuestion` in `<host: claude-code>`; numbered-list fallback in `<host: codex, opencode, cursor>` |
 | dispatching-parallel-agents | host-neutral | host-neutral | host-neutral | host-neutral | generic parallel-dispatch pattern; no tool-specific refs |
 | executing-plans | host-conditional | host-conditional | host-conditional | host-conditional | tool-use block in `<host: claude-code>`; prose fallback in `<host: codex, opencode, cursor>` |

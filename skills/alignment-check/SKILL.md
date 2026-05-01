@@ -43,6 +43,13 @@ For each task in the plan:
 - Find the design requirement it satisfies
 - If no requirement justifies it: flag as SCOPE CREEP
 
+**Manifest trace (design → manifest, manifest → plan body):**
+- Verify the plan contains a `## Scope Manifest` section (see `skills/scope-lock/SKILL.md` for the format).
+- For each design requirement, find the PR row(s) in the manifest that ship it; flag UNSCOPED if none.
+- For each PR row in the manifest, verify every Task ID it lists exists as a `### Task N:` heading in the plan body; flag MANIFEST DRIFT otherwise.
+- Verify `**PR Count:** N` matches the row count of the PR Grouping table; flag COUNT MISMATCH otherwise.
+- This is enforced programmatically by `tests/plan-scope-check.sh --plan <plan>` — alignment-check MUST run that script and fail if it returns non-zero.
+
 **Report format:**
 
 ### Alignment Report
@@ -120,9 +127,17 @@ Re-run alignment check after revision. **Max 2 revision cycles** before escalati
 
 ## On PASS
 
-Proceed to execution:
+After alignment passes, **lock the plan's scope** so subsequent execution cannot silently rescope. Invoke `superpowers:scope-lock` with the plan path. The scope-lock skill:
+
+1. Stamps the plan's `**Status:**` line with `Locked <UTC ISO-8601 timestamp>`.
+2. Computes the manifest's sha256 and writes `<plan-path>.scope-lock`.
+3. Commits both files (`chore: lock scope for <feature> (alignment passed)`).
+
+After the lock is in place, proceed to execution:
 - If autonomous mode: invoke `subagent-driven-development` (which uses Agent Teams)
 - If manual mode: return control to user
+
+If the plan does NOT contain a `## Scope Manifest` section, alignment-check fails before the lock step. The manifest is mandatory for autonomous-pipeline plans (see `skills/scope-lock/SKILL.md` for the format and `skills/writing-plans/SKILL.md` for the authoring rules).
 
 ## Integration
 
@@ -132,4 +147,6 @@ Proceed to execution:
 
 **Calls:**
 - `writing-plans` (on FAIL) — for plan revision
+- `superpowers:scope-lock` (on PASS) — to apply the post-alignment lock that prevents silent rescoping during execution
 - `subagent-driven-development` (on PASS, autonomous mode) — to begin execution
+- `tests/plan-scope-check.sh --plan <plan>` (during the manifest trace) — programmatic check that the plan's Scope Manifest is well-formed

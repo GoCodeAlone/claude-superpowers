@@ -21,8 +21,9 @@ Invoke this skill when **any** of these conditions hold:
 2. **Non-trivial trade-off.** The design weighs ≥2 plausible approaches and picks one for reasons that won't be obvious from reading the code. A flat file vs. SQLite vs. Postgres choice. A library-pin floor (`>=X.Y`) vs. exact pin (`==X.Y.Z`) decision. Sync vs. async. Polling vs. webhook.
 3. **Adversarial-review override.** The design author accepted an adversarial-review finding as "yes, but here's why" rather than fixing it. The acceptance reasoning belongs in an ADR so future contributors don't re-litigate.
 4. **Cross-skill structural change.** Any change that affects multiple skills' integration (e.g., introducing a new gate in the autonomous pipeline, renaming a step that other skills cite).
+5. **User-approved scope reduction.** The user explicitly approved removing tasks or PRs from a locked manifest (see `skills/scope-lock/SKILL.md`'s unlock path). The ADR records which tasks/PRs were dropped, why, and what carries over to a future plan. This ADR is then cited from the manifest's `**Status:** Reduced …` line and from the PR body of every PR shipped under the reduced manifest.
 
-If none of the four conditions hold, an ADR is not required. ADRs are not for every commit — they are for choices that future contributors will read the code and ask "why is it like this?" about.
+If none of the five conditions hold, an ADR is not required. ADRs are not for every commit — they are for choices that future contributors will read the code and ask "why is it like this?" about.
 
 ## Process
 

@@ -81,9 +81,9 @@ When multiple skills could apply, use this order:
 1. **Process skills first** (brainstorming, debugging) - these determine HOW to approach the task
 2. **Implementation skills second** (frontend-design, mcp-builder) - these guide execution
 3. **Pipeline skills auto-chain** — these invoke each other automatically in the autonomous pipeline:
-   brainstorming → adversarial-design-review (design phase) → writing-plans → adversarial-design-review (plan phase) → alignment-check → subagent-driven-development → finishing-a-development-branch → pr-monitoring → post-merge-retrospective
+   brainstorming → adversarial-design-review (design phase) → writing-plans → adversarial-design-review (plan phase) → alignment-check → **scope-lock** → subagent-driven-development → finishing-a-development-branch → pr-monitoring → post-merge-retrospective
 
-   Cross-cutting skills invoked from within the pipeline when conditions trigger: `recording-decisions` (when designs/plans make non-trivial trade-offs).
+   Cross-cutting skills invoked from within the pipeline when conditions trigger: `recording-decisions` (when designs/plans make non-trivial trade-offs, including user-approved scope reductions); `scope-lock` (re-checked at every per-task checkpoint and before PR creation).
 
 "Let's build X" → brainstorming first, then the pipeline runs autonomously after design approval.
 "Fix this bug" → debugging first, then domain-specific skills.
@@ -99,3 +99,23 @@ The skill itself tells you which.
 ## User Instructions
 
 Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
+
+### Strict-interpretation invariant (autonomous mode)
+
+When the autonomous pipeline is running and a user instruction is **ambiguous**, the agent MUST pick the **most-faithful-to-the-locked-plan** interpretation. Picking the looser interpretation in the name of "being helpful" is the failure mode this rule exists to prevent.
+
+| Phrase | ❌ Loose interpretation (forbidden) | ✅ Strict interpretation (mandated) |
+|---|---|---|
+| "reorder as needed" | rescope, drop tasks, change PR count | reorder tasks within the same PR; manifest unchanged |
+| "create a PR" | create one PR for whatever subset is convenient | create the number of PRs in the manifest's PR Grouping table |
+| "test locally" | skip CI; ship something that "works on my machine" | run the verification steps every plan task declares; CI still runs at the end |
+| "make it work" / "just get something working" | trim scope until the partial result runs | implement the full manifest; if blocked, surface the blocker |
+| "ship a demo" | partial scope + happy-path-only tests | there is no demo mode; either ship the locked manifest or invoke the unlock path |
+| "do whatever you think is best" | unilaterally restructure plan | do the locked manifest; surface choices not covered by the manifest |
+| "be efficient" / "be quick" | drop tests, drop reviews, drop tasks | run the pipeline at full discipline; speed comes from parallelism, not from skipping |
+
+**When multiple strict interpretations remain plausible**, the agent stops and asks. Picking one and proceeding is not allowed. The cheapest place to catch a misinterpretation is before any commit; the most expensive is after a PR is opened.
+
+**Locked plans are inviolate.** If the user phrase appears to conflict with the locked manifest in `docs/plans/<feature>.md`, the locked manifest wins until the user goes through the unlock path defined in `skills/scope-lock/SKILL.md`. "I told you to reorder" does not retroactively authorize rescoping; "yes, drop tasks 4 and 5" does (and triggers `recording-decisions`).
+
+This rule is **rigid**, not flexible. Do not adapt it. The whole point is that ambiguity is resolved upward, never sideways.

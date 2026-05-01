@@ -132,8 +132,44 @@ The plan author writes the expected output literally — not "passes tests" but 
 
 **Tech Stack:** [Key technologies/libraries]
 
+**Base branch:** [main | develop | other]
+
 ---
 ```
+
+## Scope Manifest (REQUIRED)
+
+Every plan MUST contain a `## Scope Manifest` section immediately after the header. This section is the **scope contract** between the plan author and the execution pipeline. After `alignment-check` passes, the manifest is locked (see `skills/scope-lock/SKILL.md`). Without the manifest, alignment-check fails and execution cannot start.
+
+```markdown
+## Scope Manifest
+
+**PR Count:** N
+**Tasks:** N
+**Estimated Lines of Change:** ~N (informational; not enforced)
+
+**Out of scope:**
+- <explicit non-goal>
+- <explicit non-goal — if truly nothing, write "(none)" — empty bullets are not allowed>
+
+**PR Grouping:**
+
+| PR # | Title | Tasks | Branch |
+|------|-------|-------|--------|
+| 1 | <PR title> | Task 1, Task 2 | feat/<slug>-1 |
+| 2 | <PR title> | Task 3, Task 4 | feat/<slug>-2 |
+| ... | ... | ... | ... |
+
+**Status:** Draft
+```
+
+**Authoring rules:**
+
+- **PR Count must match the PR Grouping table row count.** If the work fits in a single PR, the table has one row — write it anyway. The downstream gate enforces this.
+- **Tasks must match the count of `### Task N:` headings in the plan body.** Every task in the body appears in exactly one PR row. No orphan tasks; no phantom tasks.
+- **`**Out of scope:**` is not optional.** If the design genuinely has no non-goals, write `(none)`. Forcing the author to think about what is *not* being built reduces the chance the executing agent will helpfully add it.
+- **Each PR is independently reviewable and revertible.** If you can't say what each PR delivers in one sentence, the grouping is wrong — go back to the design.
+- **Status starts as `Draft`.** `alignment-check` flips it to `Locked …` after PASS. Manual edits to the Status line by anyone other than alignment-check / scope-lock are a contract violation.
 
 ## Task Structure
 
