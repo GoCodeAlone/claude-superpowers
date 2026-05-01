@@ -83,20 +83,20 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
        ```
     b. Read the failure logs: `gh run view <run-id> --log-failed`
     c. Identify the root cause
-    c. `cd` into that PR's worktree directory and confirm the branch:
+    d. `cd` into that PR's worktree directory and confirm the branch:
        ```bash
        cd ../<branch>-monitor
        git branch --show-current   # must equal <branch>
        ```
-    d. Fix the issue in the codebase
-    e. Run the relevant tests locally to verify
-    f. Commit and push:
+    e. Fix the issue in the codebase
+    f. Run the relevant tests locally to verify
+    g. Commit and push:
        ```bash
        git add <specific-files>
        git commit -m "fix: address CI failure in <check-name>"
        git push
        ```
-    g. Return to the next PR in the loop
+    h. Return to the next PR in the loop
 
     **Safety:** Max 5 fix attempts per unique CI failure. After 5, comment on the PR:
     "Unable to automatically resolve CI failure in <check-name> after 5 attempts. Manual intervention needed."
