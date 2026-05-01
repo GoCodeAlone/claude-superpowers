@@ -108,7 +108,7 @@ The unlock path is intentionally heavyweight. Cheap unlock = no lock at all.
 - Commit both files in the same commit: `chore: lock scope for <feature> (alignment passed)`.
 
 **`subagent-driven-development` (per-task checkpoint):**
-- Before dispatching the next task, run `tests/plan-scope-check.sh --plan <plan-path>` to verify (a) the plan's manifest hash still matches `<plan-path>.scope-lock`, (b) every commit on the feature branch traces to a task in the manifest, (c) no manifest task is missing.
+- Before dispatching the next task, run `tests/plan-scope-check.sh --verify-lock <plan-path>` to verify (a) the plan's manifest hash still matches `<plan-path>.scope-lock`, (b) every commit on the feature branch traces to a task in the manifest, (c) no manifest task is missing.
 - On any FAIL, stop dispatching new work; surface the discrepancy to the user.
 - After all tasks complete, run the same check before invoking `finishing-a-development-branch`.
 

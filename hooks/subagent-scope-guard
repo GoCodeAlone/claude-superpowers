@@ -43,8 +43,8 @@ violations=""
 
 # Working-tree and index modifications to protected files
 if command -v git >/dev/null 2>&1; then
-    (
-        cd "$cwd_dir" 2>/dev/null || exit 0
+    _saved_pwd="${PWD}"
+    if cd "$cwd_dir" 2>/dev/null; then
 
         # Uncommitted changes to scope-lock files
         scope_lock_dirty=$(git status --porcelain 2>/dev/null \
@@ -86,7 +86,9 @@ if command -v git >/dev/null 2>&1; then
                 done <<< "$plans_in_commit"
             fi
         fi
-    )
+
+        cd "$_saved_pwd"
+    fi
 fi
 
 [ -z "$violations" ] && exit 0

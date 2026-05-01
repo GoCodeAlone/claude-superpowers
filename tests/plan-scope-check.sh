@@ -13,9 +13,7 @@
 #                            <path>.scope-lock (only meaningful after the plan is
 #                            in Locked status).
 #   --against-branch <plan>  Verify the actual git branch layout matches the
-#                            PR Grouping table: every commit since the merge-base
-#                            with the plan's base branch is reachable from a
-#                            branch listed in the table; every branch in the
+#                            PR Grouping table: every branch listed in the
 #                            table exists locally or on origin.
 #
 # Multiple modes can be combined. With no flags, runs --plan on every plan in
@@ -66,11 +64,10 @@ sha256_stdin() {
 }
 
 # Check the manifest is well-formed. Args: plan path. Echoes problems to stdout.
-# Legacy plans (no manifest section AND no `# scope-manifest: required` marker
-# in a hidden HTML comment) are skipped — only plans that opt into the format
-# are enforced. New plans created by writing-plans always include the section,
-# so this only matters for grandfathering historical plans pre-dating the
-# scope-lock skill.
+# Legacy plans (no manifest section) are skipped — only plans that opt into the
+# format are enforced. New plans created by writing-plans always include the
+# section, so this only matters for grandfathering historical plans pre-dating
+# the scope-lock skill.
 check_manifest_wellformed() {
   local plan="$1"
   local manifest

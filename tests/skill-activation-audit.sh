@@ -67,15 +67,24 @@ if [ ! -r "$STATE_FILE" ]; then
 fi
 
 # Pipeline gates we expect for an autonomous run, in order. The pipeline
-# is the canonical chain documented in skills/using-superpowers/SKILL.md.
+# is the canonical chain documented in skills/using-superpowers/SKILL.md:
+#   brainstorming → adversarial-design-review (design) → writing-plans →
+#   adversarial-design-review (plan) → alignment-check → scope-lock →
+#   subagent-driven-development → finishing-a-development-branch →
+#   pr-monitoring → post-merge-retrospective
+# Note: adversarial-design-review appears twice (design and plan phases);
+# this list de-dupes it — the audit reports the count seen so gaps can be
+# identified but cannot distinguish the two phases without --phase= args.
 PIPELINE_GATES=(
   brainstorming
   adversarial-design-review
   writing-plans
   alignment-check
+  scope-lock
   subagent-driven-development
   finishing-a-development-branch
   pr-monitoring
+  post-merge-retrospective
 )
 
 # Optional gates — present only when conditions trigger them. Reported
@@ -112,10 +121,10 @@ extract_skills() {
 
 extract_agents() {
   if command -v jq >/dev/null 2>&1; then
-    jq -r 'select(.tool=="Agent" or .tool=="Task") | .detail' "$STATE_FILE" 2>/dev/null \
+    jq -r 'select(.tool=="Agent" or (.tool | type=="string" and startswith("Task"))) | .detail' "$STATE_FILE" 2>/dev/null \
       | sed -nE 's/.*agent=([A-Za-z0-9_-]+).*/\1/p'
   else
-    grep -E '"tool":"(Agent|Task)"' "$STATE_FILE" 2>/dev/null \
+    grep -E '"tool":"(Agent|Task[^"]*)"' "$STATE_FILE" 2>/dev/null \
       | sed -nE 's/.*agent=([A-Za-z0-9_-]+).*/\1/p'
   fi
 }

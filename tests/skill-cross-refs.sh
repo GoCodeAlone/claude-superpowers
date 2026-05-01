@@ -31,8 +31,8 @@ tmp_failures="$(mktemp)" || { echo "ERROR: mktemp failed" >&2; exit 3; }
 trap 'rm -f "$tmp_failures"' EXIT
 
 # Build the set of known skill names and agent names from the filesystem.
-known_skills="$(find skills -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -u)"
-known_agents="$(find agents -mindepth 1 -maxdepth 1 -type f -name '*.md' -printf '%f\n' | sed -E 's|\.md$||' | sort -u)"
+known_skills="$(find skills -mindepth 1 -maxdepth 1 -type d | sed -E 's|.*/||' | sort -u)"
+known_agents="$(find agents -mindepth 1 -maxdepth 1 -type f -name '*.md' | sed -E 's|.*/||; s|\.md$||' | sort -u)"
 
 # Helper: is the name a known skill or agent?
 is_known_target() {
@@ -68,12 +68,14 @@ strip_fences() {
 
 # Files to scan. Exclude *creation-log* / changelog-style files where the
 # point is to record historical names that no longer exist.
-mapfile -t scan_files < <(find skills agents -type f -name '*.md' \
-  ! -iname 'CREATION-LOG.md' | sort)
+# Use a newline-separated string for portability (no mapfile / Bash 4+).
+scan_files_list="$(find skills agents -type f -name '*.md' \
+  ! -iname 'CREATION-LOG.md' | sort)"
 
 # --- 1. Skill / agent references ----------------------------------------
 
-for f in "${scan_files[@]}"; do
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
   annotated="$(strip_fences "$f")"
 
   # Pattern 1: bare `<slug>/SKILL.md` references
@@ -118,7 +120,7 @@ for f in "${scan_files[@]}"; do
       fi
     done
   done < <(printf '%s\n' "$annotated" | grep -E 'superpowers:[a-z][a-z0-9-]+' || true)
-done
+done <<< "$scan_files_list"
 
 # --- 2. Step references --------------------------------------------------
 
@@ -141,7 +143,8 @@ has_step() {
     || grep -qE "Step[[:space:]]+${step}[[:space:]]*[:.]" "$file"
 }
 
-for f in "${scan_files[@]}"; do
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
   annotated="$(strip_fences "$f")"
 
   while IFS=: read -r line_no line; do
@@ -162,7 +165,7 @@ for f in "${scan_files[@]}"; do
               | sed -E "s/^([a-z][a-z0-9-]+)[a-z']*[[:space:]]+Step[[:space:]]+([0-9]+[a-z]?).*/\1 \2/")
   done < <(printf '%s\n' "$annotated" \
             | grep -E "[a-z][a-z0-9-]+[a-z']*[[:space:]]+Step[[:space:]]+[0-9]+[a-z]?" || true)
-done
+done <<< "$scan_files_list"
 
 # --- Report --------------------------------------------------------------
 

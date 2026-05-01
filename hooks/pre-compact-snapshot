@@ -26,17 +26,6 @@ hook_input=$(cat || true)
 cwd_dir=$(printf '%s' "$hook_input" | jq -r '.cwd // empty' 2>/dev/null || true)
 [ -z "$cwd_dir" ] && cwd_dir="${PWD}"
 
-# ── Portable sha256 (same helper as tests/plan-scope-check.sh) ───────────────
-sha256_file() {
-    if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum "$1" 2>/dev/null | awk '{print $1}'
-    elif command -v shasum >/dev/null 2>&1; then
-        shasum -a 256 "$1" 2>/dev/null | awk '{print $1}'
-    else
-        echo "unavailable"
-    fi
-}
-
 # ── Find locked plans and collect their state ─────────────────────────────────
 plans_dir="${cwd_dir}/docs/plans"
 state_section=""
@@ -50,10 +39,12 @@ if [ -d "$plans_dir" ]; then
         # Extract Status line
         status_line=$(grep '\*\*Status:\*\*' "$plan" 2>/dev/null | tail -1 | sed 's/.*\*\*Status:\*\*[[:space:]]*//' || true)
 
-        # Hash of the lock file (the manifest hash stored at lock time)
+        # Read the manifest hash stored inside the lock file (first non-comment,
+        # non-blank line). This is the same value tests/plan-scope-check.sh
+        # --verify-lock compares against the current manifest sha256.
         if [ -f "$lock_file" ]; then
-            lock_hash=$(sha256_file "$lock_file")
-            state_section="${state_section}  ${plan_name}: ${status_line} (lock-file sha256: ${lock_hash})\n"
+            manifest_hash=$(awk 'NF && !/^#/ {print; exit}' "$lock_file" 2>/dev/null || true)
+            state_section="${state_section}  ${plan_name}: ${status_line} (manifest-sha256: ${manifest_hash:-unknown})\n"
         else
             state_section="${state_section}  ${plan_name}: ${status_line} (no lock file — not yet locked or lock file missing)\n"
         fi

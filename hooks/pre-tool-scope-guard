@@ -68,7 +68,14 @@ case "$tool_name" in
     #   SUPERPOWERS_ALLOW_DEFAULT_BRANCH=1 git push origin main
     #   env SUPERPOWERS_SCOPE_LOCK_WRITE=1 bash -c '...'
     #   SUPERPOWERS_PLAN_LOCK_WRITE=1; git commit ...  (before semicolon)
-    if printf '%s' "$cmd" | grep -qE '(^|[;&|[:space:]])(export[[:space:]]+)?SUPERPOWERS_[A-Z_]+='; then
+    # Not blocked (benign debugging/grepping):
+    #   echo "SUPERPOWERS_HOOKS_DISABLE=1"
+    #   grep 'SUPERPOWERS_.*=' file
+    # Best-effort: strip single- and double-quoted strings before checking so
+    # that mentions of SUPERPOWERS_* inside quoted arguments don't trigger a
+    # false-positive block.
+    cmd_no_quotes=$(printf '%s' "$cmd" | sed "s/\"[^\"]*\"//g; s/'[^']*'//g")
+    if printf '%s' "$cmd_no_quotes" | grep -qE '(^|[;&|[:space:]])(export[[:space:]]+)?SUPERPOWERS_[A-Z_]+='; then
         block "Self-bypass attempt blocked: setting a SUPERPOWERS_* environment variable from inside a Bash tool call is not permitted. These variables control pipeline enforcement gates and may only be set by the human operator in their terminal environment before starting the agent session. The agent cannot grant itself permission to bypass its own constraints — that would make the gates meaningless."
     fi
 
