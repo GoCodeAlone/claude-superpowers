@@ -133,12 +133,12 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
     ```
 
     To reply to a review thread, use the REST API with the `databaseId` of the
-    first comment in the thread (the `in_reply_to_id` parameter):
+    first comment in the thread (the `in_reply_to` parameter):
     ```bash
     gh api repos/<owner>/<repo>/pulls/<number>/comments \
       --method POST \
       --field body="Addressed in <commit-sha>" \
-      --field in_reply_to_id=<databaseId>
+      --field in_reply_to=<databaseId>
     ```
 
     Also fetch any "CHANGES_REQUESTED" reviews:
@@ -149,9 +149,9 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
     ```
 
     **Bot detection:** treat a commenter as a bot if their login ends in `[bot]`
-    or matches a known review bot (e.g. `copilot`, `github-advanced-security`,
-    `datadog`, `codeclimate`, `sonarcloud`). Apply the same address-then-resolve
-    flow to bot comments as to human comments.
+    or matches a known review bot (e.g. `copilot-pull-request-reviewer`,
+    `github-advanced-security`, `datadog`, `codeclimate`, `sonarcloud`). Apply
+    the same address-then-resolve flow to bot comments as to human comments.
 
     **If new unresolved, non-outdated threads are found:**
     a. Read the comment carefully
@@ -164,7 +164,8 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
     d. Run tests to verify
     e. Commit and push
     f. Reply to the comment: "Addressed in <commit-sha>"
-    g. **Resolve the thread** (required for all comments, especially bot comments):
+    g. **Resolve the thread** after verification unless the max revision rounds
+       safety limit was exceeded (required for addressed comments, especially bot comments):
        ```bash
        gh api graphql -f query='
          mutation($threadId: ID!) {
@@ -184,7 +185,7 @@ Agent tool (general-purpose, model: balanced, run_in_background: true):
 
     A PR is **complete** when ALL of:
     - All CI checks passing (green)
-    - No unresolved review comments
+    - No unresolved, non-outdated review threads
     - No pending "changes requested" reviews
 
     **On all PRs complete (clean exit):**
@@ -226,8 +227,9 @@ with a **10-minute** wait between full cycles and a **60-minute** total session 
   per branch so you never switch branches mid-session
 - GraphQL `reviewThreads` query — fetch unresolved, non-outdated threads; address
   each one, reply "Addressed in <commit-sha>", then resolve the thread via the
-  `resolveReviewThread` GraphQL mutation. Apply this to bot comments (any login
-  ending in `[bot]`, or known bots such as `copilot`, `github-advanced-security`,
+  `resolveReviewThread` GraphQL mutation unless the 3 revision-round safety limit
+  was exceeded. Apply this to bot comments (any login ending in `[bot]`, or known
+  bots such as `copilot-pull-request-reviewer`, `github-advanced-security`,
   `datadog`) the same as human comments.
 - `gh api repos/<owner>/<repo>/pulls/<number>/reviews` — handle any "CHANGES_REQUESTED" reviews
 
