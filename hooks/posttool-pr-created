@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# hooks/posttool-pr-created
+# PostToolUse hook: reminds the agent to invoke pr-monitoring after gh pr create.
+#
+# Fires whenever a Bash tool call contains "gh pr create".  Extracts the PR
+# URL from the tool response (if present) and injects an IMPORTANT reminder
+# that pr-monitoring must be started immediately for the new PR.
+#
+# Why this exists: agents sometimes bypass the finishing-a-development-branch
+# skill chain and run gh pr create directly.  Without the skill chain the
+# automatic "invoke pr-monitoring" step never fires, leaving CI failures and
+# bot review comments unattended.  This hook closes that gap by triggering
+# the reminder mechanically — regardless of which code path created the PR.
+#
+# Global opt-out: set SUPERPOWERS_HOOKS_DISABLE=1
+
+set -euo pipefail
+
+[ "${SUPERPOWERS_HOOKS_DISABLE:-}" = "1" ] && exit 0
+
+# Require stdin (PostToolUse always sends a JSON payload).
+[ -t 0 ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+hook_input=$(cat || true)
+[ -z "$hook_input" ] && exit 0
+
+tool_name=$(printf '%s' "$hook_input" | jq -r '.tool_name // empty' 2>/dev/null || true)
+[ "$tool_name" != "Bash" ] && exit 0
+
+cmd=$(printf '%s' "$hook_input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)
+[ -z "$cmd" ] && exit 0
+
+# Only act when the command created a PR (not a simple `gh pr list`, etc.).
+printf '%s' "$cmd" | grep -q 'gh pr create' || exit 0
+
+# Try to extract the PR URL from the tool response to confirm the PR was created.
+# If no URL is found, gh pr create likely failed — do not inject the reminder.
+tool_response=$(printf '%s' "$hook_input" | jq -r '.tool_response // empty' 2>/dev/null || true)
+pr_url=$(printf '%s' "$tool_response" \
+    | grep -oE 'https://github\.com/[^[:space:]]+/pull/[0-9]+' \
+    | head -1 || true)
+
+# Only remind when we can confirm a PR was successfully created.
+[ -z "$pr_url" ] && exit 0
+
+pr_hint="for the PR you just created: ${pr_url}"
+
+# Escape a string for embedding inside a JSON string value.
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+reminder="<IMPORTANT>"
+reminder+="You just ran \`gh pr create\`. "
+reminder+="You MUST now invoke \`superpowers:pr-monitoring\` ${pr_hint}. "
+reminder+="Prefer a single monitoring agent covering all PRs in this session to avoid GitHub API rate limits. "
+reminder+="One agent per PR is acceptable if the PRs are on unrelated codebases or a previous shared monitor was rate-limited. "
+reminder+="Draft PRs still trigger CI and receive bot reviews, so monitoring is required regardless of draft state. "
+reminder+="Do NOT declare the task complete until pr-monitoring has been started. "
+reminder+="See superpowers:pr-monitoring for usage."
+reminder+="</IMPORTANT>"
+
+escaped=$(escape_for_json "$reminder")
+
+printf '{"additional_context":"%s"}\n' "$escaped"
+
+exit 0

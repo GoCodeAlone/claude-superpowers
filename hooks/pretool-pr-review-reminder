@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# hooks/pretool-pr-review-reminder
+# PreToolUse hook: reminds the agent to add Copilot as a reviewer after creating a PR.
+#
+# When an agent is about to run gh pr create, inject a reminder about:
+#   1. gh CLI version requirement (v2.88+)
+#   2. Adding Copilot as a reviewer via `gh pr edit --add-reviewer copilot-pull-request-reviewer`
+#      immediately after the PR is created (not as a flag to gh pr create).
+#
+# Global opt-out: set SUPERPOWERS_HOOKS_DISABLE=1
+
+set -euo pipefail
+
+[ "${SUPERPOWERS_HOOKS_DISABLE:-}" = "1" ] && exit 0
+
+# Require stdin (PreToolUse always sends a JSON payload).
+[ -t 0 ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+hook_input=$(cat || true)
+[ -z "$hook_input" ] && exit 0
+
+tool_name=$(printf '%s' "$hook_input" | jq -r '.tool_name // empty' 2>/dev/null || true)
+[ "$tool_name" != "Bash" ] && exit 0
+
+cmd=$(printf '%s' "$hook_input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)
+[ -z "$cmd" ] && exit 0
+
+# Only act on PR creation commands.
+printf '%s' "$cmd" | grep -q 'gh pr create' || exit 0
+
+# Escape a string for embedding inside a JSON string value.
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+reminder=$(cat <<'REMINDER'
+<IMPORTANT>
+Before and after running `gh pr create`:
+(1) Ensure `gh` is version 2.88 or higher (`gh --version`).
+    If it is older, upgrade gh (e.g. `gh upgrade` or follow https://cli.github.com/manual/)
+    or inform the user that a manual upgrade is needed.
+(2) After the PR is created, add Copilot as a reviewer by running:
+      gh pr edit <PR-number> --add-reviewer copilot-pull-request-reviewer
+    Do NOT use `--reviewer Copilot` as a flag to `gh pr create` —
+    the correct method is `gh pr edit --add-reviewer copilot-pull-request-reviewer` post-creation.
+</IMPORTANT>
+REMINDER
+)
+
+escaped=$(escape_for_json "$reminder")
+
+printf '{"additional_context":"%s"}\n' "$escaped"
+
+exit 0
